@@ -1595,8 +1595,37 @@ function Landing({ onStart, teacher }) {
       <style>{`
         @media (min-width: 768px) {
           .ss-landing .ss-land-band { display: flex; justify-content: center; }
-          .ss-landing .ss-land-inner { width: 100%; max-width: 760px; }
-          .ss-landing .ss-land-hero-inner { width: 100%; max-width: 680px; margin: 0 auto; }
+          .ss-landing .ss-land-inner { width: 100%; max-width: 1040px; padding-left: 48px; padding-right: 48px; }
+          .ss-landing .ss-land-hero-inner { width: 100%; max-width: 920px; margin: 0 auto; }
+          .ss-landing .ss-hero-neon { font-size: 88px !important; }
+          .ss-landing .ss-hero-tag { font-size: 16px !important; letter-spacing: .4em !important; }
+          .ss-landing .ss-hero-h1 { font-size: 52px !important; }
+          .ss-landing .ss-hero-sub { font-size: 20px !important; max-width: 540px !important; }
+          .ss-landing .ss-hero-mascot { transform: scale(1.55); margin: 14px 0; }
+          .ss-landing .ss-hero-cta { max-width: 380px !important; min-height: 66px !important; font-size: 20px !important; }
+          .ss-landing .ss-hero-meta { font-size: 15px !important; }
+          .ss-landing .ss-sec-kicker { font-size: 14px !important; }
+          .ss-landing .ss-sec-h2 { font-size: 34px !important; }
+          .ss-landing .ss-step-row { padding: 22px 24px !important; }
+          .ss-landing .ss-step-n { font-size: 34px !important; min-width: 48px !important; }
+          .ss-landing .ss-step-t { font-size: 22px !important; }
+          .ss-landing .ss-step-d { font-size: 17px !important; }
+          .ss-landing .ss-why-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 16px !important; }
+          .ss-landing .ss-why-card { padding: 22px 20px !important; }
+          .ss-landing .ss-why-e { font-size: 34px !important; }
+          .ss-landing .ss-why-t { font-size: 18px !important; }
+          .ss-landing .ss-why-d { font-size: 15px !important; }
+          .ss-landing .ss-faq-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 14px !important; }
+          .ss-landing .ss-faq-q { font-size: 17px !important; }
+          .ss-landing .ss-faq-a { font-size: 15.5px !important; }
+          .ss-landing .ss-cta-h2 { font-size: 36px !important; }
+          .ss-landing .ss-cta-p { font-size: 18px !important; max-width: 460px !important; }
+          .ss-landing .ss-cta-btn { max-width: 380px !important; min-height: 64px !important; font-size: 20px !important; }
+        }
+        @media (min-width: 1180px) {
+          .ss-landing .ss-land-inner { max-width: 1140px; }
+          .ss-landing .ss-hero-neon { font-size: 104px !important; }
+          .ss-landing .ss-hero-h1 { font-size: 60px !important; }
         }
       `}</style>
       {/* HERO */}
@@ -1615,31 +1644,31 @@ function Landing({ onStart, teacher }) {
 
         {/* neon sign */}
         <div style={{ position: "relative", textAlign: "center", padding: "26px 22px 4px" }}>
-          <div style={{ fontSize: 52, lineHeight: 1.05, letterSpacing: ".06em" }}>
+          <div className="ss-hero-neon" style={{ fontSize: 52, lineHeight: 1.05, letterSpacing: ".06em" }}>
             <NeonChar ch="麻" color="#FF4D8D" delay={0} />
             <NeonChar ch="雀" color="#34D0FF" delay={0.4} />
           </div>
-          <div style={{ marginTop: 6, color: "#FFC233", fontWeight: 700, fontSize: 13, letterSpacing: ".32em", textTransform: "uppercase", textShadow: "0 0 12px #FFC23366" }}>Learn Mahjong</div>
+          <div className="ss-hero-tag" style={{ marginTop: 6, color: "#FFC233", fontWeight: 700, fontSize: 13, letterSpacing: ".32em", textTransform: "uppercase", textShadow: "0 0 12px #FFC23366" }}>Learn Mahjong</div>
         </div>
 
         {/* headline */}
         <div style={{ position: "relative", textAlign: "center", padding: "18px 24px 0" }}>
-          <h1 style={{ fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 30, lineHeight: 1.18, color: "#fff", margin: 0, letterSpacing: "-.01em" }}>
+          <h1 className="ss-hero-h1" style={{ fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 30, lineHeight: 1.18, color: "#fff", margin: 0, letterSpacing: "-.01em" }}>
             Learn mahjong before<br />you ever sit down.
           </h1>
-          <p style={{ color: "#D9CFE8", fontSize: 16, lineHeight: 1.55, margin: "12px auto 0", maxWidth: 360 }}>
+          <p className="ss-hero-sub" style={{ color: "#D9CFE8", fontSize: 16, lineHeight: 1.55, margin: "12px auto 0", maxWidth: 360 }}>
             The friendly, tap-along way to learn Hong Kong–style mahjong — so your first real game isn't your first time seeing the tiles.
           </p>
         </div>
 
         {/* mascot + CTA */}
         <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 24px 0", gap: 16 }}>
-          <div style={{ filter: "drop-shadow(0 8px 24px rgba(255,77,141,.35))" }}><A size={104} /></div>
-          <button onClick={onStart} className="ss-btn"
+          <div className="ss-hero-mascot" style={{ filter: "drop-shadow(0 8px 24px rgba(255,77,141,.35))" }}><A size={104} /></div>
+          <button onClick={onStart} className="ss-btn ss-hero-cta"
             style={{ width: "min(330px,100%)", minHeight: 60, fontSize: 18.5, fontWeight: 800, fontFamily: T.fontBody, color: "#fff", background: "#FF4D8D", border: "none", borderRadius: 18, boxShadow: "0 6px 24px rgba(255,77,141,.5), 0 4px 0 #C9296A", cursor: "pointer", letterSpacing: ".01em", WebkitTapHighlightColor: "transparent" }}>
             Start learning — it's free
           </button>
-          <div style={{ color: "#B9AEC9", fontSize: 13, display: "flex", alignItems: "center", gap: 7 }}>
+          <div className="ss-hero-meta" style={{ color: "#B9AEC9", fontSize: 13, display: "flex", alignItems: "center", gap: 7 }}>
             <span>★ No ads</span><span>·</span><span>5 min a day</span><span>·</span><span>No sign-up needed</span>
           </div>
         </div>
@@ -1650,16 +1679,16 @@ function Landing({ onStart, teacher }) {
       <div className="ss-land-band" style={{ background: T.surface }}>
       <div className="ss-land-inner" style={{ padding: "30px 22px 6px" }}>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: T.neonPink, textTransform: "uppercase", letterSpacing: ".14em" }}>How it works</div>
-          <h2 style={{ fontFamily: T.fontDisplay, fontSize: 25, fontWeight: 800, color: T.ink, margin: "6px 0 0", letterSpacing: T.displaySpacing }}>Three steps to the table</h2>
+          <div className="ss-sec-kicker" style={{ fontSize: 12, fontWeight: 800, color: T.neonPink, textTransform: "uppercase", letterSpacing: ".14em" }}>How it works</div>
+          <h2 className="ss-sec-h2" style={{ fontFamily: T.fontDisplay, fontSize: 25, fontWeight: 800, color: T.ink, margin: "6px 0 0", letterSpacing: T.displaySpacing }}>Three steps to the table</h2>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {steps.map((s) => (
-            <div key={s.n} style={{ display: "flex", gap: 14, alignItems: "flex-start", background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: T.radius, padding: "16px 16px", boxShadow: T.cardShadow }}>
-              <div style={{ fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 24, color: T.neonPink, lineHeight: 1, minWidth: 34, textShadow: T.neon ? `0 0 10px ${T.neonPink}55` : "none" }}>{s.n}</div>
+            <div key={s.n} className="ss-step-row" style={{ display: "flex", gap: 14, alignItems: "flex-start", background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: T.radius, padding: "16px 16px", boxShadow: T.cardShadow }}>
+              <div className="ss-step-n" style={{ fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 24, color: T.neonPink, lineHeight: 1, minWidth: 34, textShadow: T.neon ? `0 0 10px ${T.neonPink}55` : "none" }}>{s.n}</div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 17, color: T.ink, fontFamily: T.fontDisplay }}>{s.t}</div>
-                <div style={{ fontSize: 14.5, color: T.sub, marginTop: 3, lineHeight: 1.5 }}>{s.d}</div>
+                <div className="ss-step-t" style={{ fontWeight: 800, fontSize: 17, color: T.ink, fontFamily: T.fontDisplay }}>{s.t}</div>
+                <div className="ss-step-d" style={{ fontSize: 14.5, color: T.sub, marginTop: 3, lineHeight: 1.5 }}>{s.d}</div>
               </div>
             </div>
           ))}
@@ -1670,17 +1699,17 @@ function Landing({ onStart, teacher }) {
       {/* WHY IT'S DIFFERENT */}
       <div className="ss-land-band">
       <div className="ss-land-inner" style={{ padding: "26px 22px 6px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
+        <div className="ss-why-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
           {[
             { e: "🀄", t: "Tap, don't read", d: "Built on matching shapes, not memorizing Chinese." },
             { e: "🎴", t: "Real HK tiles", d: "Authentic faces, calls & etiquette — table-ready." },
             { e: "🏮", t: "Vintage HK soul", d: "Neon, junk boats & dim sum, in every screen." },
             { e: "🔥", t: "A daily puzzle", d: "One “what would you discard?” to keep you sharp." },
           ].map((c, i) => (
-            <div key={i} style={{ background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: T.radius, padding: "15px 14px", boxShadow: T.cardShadow }}>
-              <div style={{ fontSize: 26 }}>{c.e}</div>
-              <div style={{ fontWeight: 800, fontSize: 15.5, color: T.ink, marginTop: 6, fontFamily: T.fontDisplay }}>{c.t}</div>
-              <div style={{ fontSize: 13, color: T.sub, marginTop: 3, lineHeight: 1.45 }}>{c.d}</div>
+            <div key={i} className="ss-why-card" style={{ background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: T.radius, padding: "15px 14px", boxShadow: T.cardShadow }}>
+              <div className="ss-why-e" style={{ fontSize: 26 }}>{c.e}</div>
+              <div className="ss-why-t" style={{ fontWeight: 800, fontSize: 15.5, color: T.ink, marginTop: 6, fontFamily: T.fontDisplay }}>{c.t}</div>
+              <div className="ss-why-d" style={{ fontSize: 13, color: T.sub, marginTop: 3, lineHeight: 1.45 }}>{c.d}</div>
             </div>
           ))}
         </div>
@@ -1690,12 +1719,12 @@ function Landing({ onStart, teacher }) {
       {/* FAQ */}
       <div className="ss-land-band">
       <div className="ss-land-inner" style={{ padding: "26px 22px 8px" }}>
-        <h2 style={{ fontFamily: T.fontDisplay, fontSize: 22, fontWeight: 800, color: T.ink, margin: "0 0 14px", textAlign: "center", letterSpacing: T.displaySpacing }}>Good to know</h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <h2 className="ss-sec-h2" style={{ fontFamily: T.fontDisplay, fontSize: 22, fontWeight: 800, color: T.ink, margin: "0 0 14px", textAlign: "center", letterSpacing: T.displaySpacing }}>Good to know</h2>
+        <div className="ss-faq-grid" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {faqs.map((f, i) => (
             <div key={i} style={{ background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 15, padding: "13px 15px", boxShadow: T.cardShadow }}>
-              <div style={{ fontWeight: 800, fontSize: 15, color: T.ink }}>{f[0]}</div>
-              <div style={{ fontSize: 14, color: T.sub, marginTop: 4, lineHeight: 1.5 }}>{f[1]}</div>
+              <div className="ss-faq-q" style={{ fontWeight: 800, fontSize: 15, color: T.ink }}>{f[0]}</div>
+              <div className="ss-faq-a" style={{ fontSize: 14, color: T.sub, marginTop: 4, lineHeight: 1.5 }}>{f[1]}</div>
             </div>
           ))}
         </div>
@@ -1705,11 +1734,11 @@ function Landing({ onStart, teacher }) {
       {/* FINAL CTA */}
       <div style={{ position: "relative", margin: "20px 0 0", padding: "34px 24px calc(36px + env(safe-area-inset-bottom,0px))", textAlign: "center", background: "linear-gradient(180deg,#2A1840 0%,#1A1230 100%)", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(100% 80% at 50% 100%, rgba(52,208,255,.18), transparent 60%)" }} />
-        <div style={{ position: "relative", maxWidth: 680, margin: "0 auto" }}>
+        <div style={{ position: "relative", maxWidth: 760, margin: "0 auto" }}>
           <HarborScene height={70} />
-          <h2 style={{ position: "relative", fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 24, color: "#fff", margin: "18px 0 6px" }}>Your auntie is waiting.</h2>
-          <p style={{ position: "relative", color: "#C9BEDC", fontSize: 15, margin: "0 auto 18px", maxWidth: 320, lineHeight: 1.5 }}>Walk up to the table already knowing how to play. Start now — no account, no catch.</p>
-          <button onClick={onStart} className="ss-btn"
+          <h2 className="ss-cta-h2" style={{ position: "relative", fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 24, color: "#fff", margin: "18px 0 6px" }}>Your auntie is waiting.</h2>
+          <p className="ss-cta-p" style={{ position: "relative", color: "#C9BEDC", fontSize: 15, margin: "0 auto 18px", maxWidth: 320, lineHeight: 1.5 }}>Walk up to the table already knowing how to play. Start now — no account, no catch.</p>
+          <button onClick={onStart} className="ss-btn ss-cta-btn"
             style={{ position: "relative", width: "min(320px,100%)", minHeight: 58, fontSize: 18, fontWeight: 800, fontFamily: T.fontBody, color: "#1A1230", background: "#FFC233", border: "none", borderRadius: 18, boxShadow: "0 4px 0 #C9920F", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
             Start learning
           </button>
