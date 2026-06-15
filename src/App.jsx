@@ -266,6 +266,64 @@ function IconPung() {
     </svg>
   );
 }
+function IconFan() {
+  return (
+    <svg viewBox="0 0 40 40" width="32" height="32">
+      <circle cx="14" cy="24" r="8" fill="#FBE3A1" stroke="#B8860B" strokeWidth="2" />
+      <circle cx="22" cy="20" r="8" fill="#FBE3A1" stroke="#B8860B" strokeWidth="2" />
+      <text x="22" y="24" textAnchor="middle" fontSize="11" fontWeight="700" fill="#B8860B" fontFamily="'Noto Sans TC',sans-serif">番</text>
+      <path d="M28 9 l1.6 3.4 3.4 .4 -2.5 2.4 .7 3.6 -3.2 -1.8 -3.2 1.8 .7 -3.6 -2.5 -2.4 3.4 -.4 Z" fill="#FFC233" />
+    </svg>
+  );
+}
+function IconMoneyHand() {
+  return (
+    <svg viewBox="0 0 40 40" width="32" height="32">
+      <rect x="5" y="11" width="9" height="20" rx="2.5" fill="#FFFDF6" stroke="#C0392B" strokeWidth="2" transform="rotate(-10 9 21)" />
+      <rect x="15" y="9" width="9" height="20" rx="2.5" fill="#FFFDF6" stroke="#C0392B" strokeWidth="2" />
+      <rect x="25" y="11" width="9" height="20" rx="2.5" fill="#FFFDF6" stroke="#C0392B" strokeWidth="2" transform="rotate(10 30 21)" />
+      <text x="19.5" y="22" textAnchor="middle" fontSize="11" fontWeight="700" fill="#C0392B" fontFamily="'Noto Sans TC',sans-serif">大</text>
+    </svg>
+  );
+}
+function IconSeat() {
+  return (
+    <svg viewBox="0 0 40 40" width="32" height="32">
+      <circle cx="20" cy="20" r="15" fill="#FFFDF6" stroke="#2E86C1" strokeWidth="2" />
+      <polygon points="20,7 24,20 20,18 16,20" fill="#2E86C1" />
+      <polygon points="20,33 16,20 20,22 24,20" fill="#9CC9E8" />
+      <text x="20" y="5" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="#2E86C1" fontFamily="'Noto Sans TC',sans-serif">東</text>
+    </svg>
+  );
+}
+function IconKong() {
+  return (
+    <svg viewBox="0 0 40 40" width="32" height="32">
+      {[6, 13, 20, 27].map((x, i) => (
+        <rect key={i} x={x} y={10} width="6.5" height="20" rx="2" fill="#FFFDF6" stroke="#16A085" strokeWidth="1.8" />
+      ))}
+      <text x="20" y="8" textAnchor="middle" fontSize="7" fontWeight="700" fill="#16A085" fontFamily="'Noto Sans TC',sans-serif">槓</text>
+    </svg>
+  );
+}
+function IconShield() {
+  return (
+    <svg viewBox="0 0 40 40" width="32" height="32">
+      <path d="M20 5 l12 4 v9 c0 8 -5 13 -12 16 c-7 -3 -12 -8 -12 -16 v-9 Z" fill="#EFE3F5" stroke="#7D3C98" strokeWidth="2.2" strokeLinejoin="round" />
+      <path d="M14 20 l4 4 8 -8" fill="none" stroke="#7D3C98" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconTrophy() {
+  return (
+    <svg viewBox="0 0 40 40" width="32" height="32">
+      <path d="M12 8 h16 v6 c0 5 -3.5 8 -8 8 s-8 -3 -8 -8 Z" fill="#FFE7B0" stroke="#D35400" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M12 10 h-4 v3 c0 3 2 4 4 4 M28 10 h4 v3 c0 3 -2 4 -4 4" fill="none" stroke="#D35400" strokeWidth="2" strokeLinecap="round" />
+      <rect x="17" y="22" width="6" height="6" fill="#E8A04E" />
+      <rect x="12" y="28" width="16" height="4" rx="1.5" fill="#D35400" />
+    </svg>
+  );
+}
 
 /* ---------------- TILE FACES (SVG 60x80) ---------------- */
 
@@ -914,19 +972,232 @@ const LESSON_CONTENT = {
     },
     {
       type: "teach", title: "You know the whole loop",
-      say: (t) => <>Tiles, sets, the winning shape, turns, calls — that's a <b>complete game</b> of Hong Kong mahjong. What's left is scoring (<b>fan 番</b>) and strategy… which is where the real fun — and your relatives' pocket money — lives. Unit 2 is on the way.</>,
+      say: (t) => <>Tiles, sets, the winning shape, turns, calls — that's a <b>complete game</b> of Hong Kong mahjong. What's left is scoring (<b>fan 番</b>) and strategy — where the real fun, and your relatives' pocket money, lives. On to Unit 2.</>,
       tiles: [], requireAll: false,
+    },
+  ],
+  7: [
+    {
+      type: "teach", title: "Scoring lives in “fan” 番",
+      say: () => <>You can win… and still win <i>nothing</i>. A hand's value is counted in <b>fan 番 (faan)</b> — points you earn from special tiles and patterns. More fan = more money. This unit teaches you where fan comes from.</>,
+      tiles: [Dr("r")], requireAll: false, note: "Think of fan as the “score multiplier” on your win.",
+    },
+    {
+      type: "teach", title: "The 3-fan minimum",
+      say: () => <>Most HK tables set a <b>minimum to win</b> — commonly <b>3 fan</b>. A hand worth fewer can't be declared; you keep playing for something bigger. This rule is why people chase patterns instead of just completing any 14 tiles.</>,
+      groups: [{ label: "Needs ≥ 3 fan to declare", tiles: [Dr("g"), Dr("g"), Dr("g")] }],
+      note: "House rules vary — but “a cheap hand can't win” is near-universal.",
+    },
+    {
+      type: "pickOne", prompt: "A pung of Red Dragon is worth fan. True or false?",
+      choices: ["True — dragons score", "False — no tile scores"], correct: 0,
+      hint: "Any dragon triplet always gives fan. Dragons are money tiles.",
+    },
+    {
+      type: "teach", title: "Where fan comes from",
+      say: () => <>Common fan sources you'll learn this unit: <b>dragon pungs</b>, <b>your seat wind</b>, <b>all one suit</b>, <b>all pungs</b>, and <b>self-draw</b>. Each adds fan; stack several and a hand gets expensive — in your favour.</>,
+      tiles: [], requireAll: false, note: "Fan stacks. One big hand can be worth many small ones.",
+    },
+    {
+      type: "pickOne", prompt: "Your table's minimum is 3 fan. Your hand is worth 1 fan. Can you declare a win?",
+      choices: ["Yes, a win's a win", "No — keep building"], correct: 1,
+      hint: "Below the minimum, you can't declare. Hold out for more fan.",
+    },
+  ],
+  8: [
+    {
+      type: "teach", title: "The money hands",
+      say: () => <>Some shapes are worth chasing because they pay big. The first: <b>All Pungs 對對糊 (deui deui wu)</b> — every set is a triplet (or kong), <b>no chows</b>, plus your pair.</>,
+      groups: [
+        { label: "pung", tiles: [D(3), D(3), D(3)] },
+        { label: "pung", tiles: [B(7), B(7), B(7)] },
+        { label: "pung", tiles: [Ch(2), Ch(2), Ch(2)] },
+        { label: "pung", tiles: [W("東"), W("東"), W("東")] },
+        { label: "pair", tiles: [Dr("r"), Dr("r")] },
+      ],
+    },
+    {
+      type: "judge", prompt: "Is this an All-Pungs hand?",
+      groups: [
+        { tiles: [D(5), D(5), D(5)] },
+        { tiles: [B(2), B(3), B(4)] },
+        { tiles: [Ch(8), Ch(8), Ch(8)] },
+        { tiles: [W("南"), W("南"), W("南")] },
+        { tiles: [Dr("g"), Dr("g")] },
+      ],
+      choices: ["Yes — all pungs", "No — there's a chow"], correct: 1,
+      hint: "2-3-4 of Bamboo is a chow. All Pungs allows zero chows.",
+    },
+    {
+      type: "teach", title: "One-suit hands",
+      say: () => <><b>Mixed One Suit 混一色</b> = one suit + honor tiles only. <b>Pure One Suit 清一色</b> = a single suit, <b>nothing else</b> — no honors. Pure is rarer and pays a lot more.</>,
+      groups: [
+        { label: "混一色 (suit + honors)", tiles: [B(2), B(3), B(4)] },
+        { label: "清一色 (one suit only)", tiles: [D(1), D(2), D(3)] },
+      ],
+    },
+    {
+      type: "judge", prompt: "Is this Pure One Suit 清一色?",
+      groups: [
+        { tiles: [D(1), D(2), D(3)] },
+        { tiles: [D(4), D(5), D(6)] },
+        { tiles: [D(7), D(8), D(9)] },
+        { tiles: [D(2), D(2), D(2)] },
+        { tiles: [D(5), D(5)] },
+      ],
+      choices: ["Yes — all Dots, no honors", "No"], correct: 0,
+      hint: "Every tile is a Dot, with no winds or dragons. That's pure.",
+    },
+    {
+      type: "judge", prompt: "And this one — Pure One Suit?",
+      groups: [
+        { tiles: [B(1), B(2), B(3)] },
+        { tiles: [B(5), B(5), B(5)] },
+        { tiles: [B(7), B(8), B(9)] },
+        { tiles: [Dr("r"), Dr("r"), Dr("r")] },
+        { tiles: [B(4), B(4)] },
+      ],
+      choices: ["Yes", "No — a dragon sneaks in"], correct: 1,
+      hint: "The red dragon makes it Mixed (混一色), not Pure. Pure means zero honors.",
+    },
+  ],
+  9: [
+    {
+      type: "teach", title: "Your seat has a wind",
+      say: () => <>Each of the four seats <i>is</i> a wind: <b>East 東, South 南, West 西, North 北</b>, going counter-clockwise. East is the <b>dealer (莊 zong)</b>. Your seat wind is special — to <i>you</i>.</>,
+      tiles: [W("東"), W("南"), W("西"), W("北")],
+      captions: ["East (dealer)", "South", "West", "North"], requireAll: true,
+    },
+    {
+      type: "teach", title: "Why your wind pays",
+      say: () => <>A pung of <b>your own seat wind</b> scores fan. So does a pung of the <b>prevailing wind</b> (the wind of the current round). Get a wind that's <i>both</i> and it's a double. Other winds? Just tiles.</>,
+      groups: [{ label: "If you're South: this pays", tiles: [W("南"), W("南"), W("南")] }],
+      note: "Seat wind + round wind are the two “lucky” winds for you.",
+    },
+    {
+      type: "pickOne", prompt: "You're in the South seat with a pung of South 南. Does it score fan?",
+      choices: ["Yes — it's your seat wind", "No — winds never score"], correct: 0,
+      hint: "Your own seat wind always pays. 南 is yours.",
+    },
+    {
+      type: "pickOne", prompt: "You're South. You have a pung of West 西. The round wind is East. Bonus fan?",
+      tiles: [W("西")], big: true, stack: true,
+      choices: ["Yes", "No — not your wind, not the round's"], correct: 1,
+      hint: "West isn't your seat wind and isn't the prevailing wind. No bonus.",
+    },
+    {
+      type: "teach", title: "The dealer's stakes",
+      say: () => <>The <b>dealer (East)</b> plays for double — wins double, pays double. Win as dealer and you <b>stay dealer</b> and go again. The seat rotates only when the dealer loses the hand. High risk, high reward.</>,
+      tiles: [], requireAll: false, note: "Dealing is a hot seat — literally worth twice as much.",
+    },
+  ],
+  10: [
+    {
+      type: "teach", title: "Self-draw 自摸",
+      say: () => <>How you get your final tile matters. Draw it yourself from the wall — <b>自摸 zi mo (self-draw)</b> — and it's worth <b>extra fan</b>, and <b>everyone</b> pays. Win off a discard and only the discarder pays.</>,
+      groups: [
+        { label: "自摸 · drew it myself · all pay", tiles: [Dr("g"), Dr("g"), Dr("g")] },
+      ],
+      note: "Self-draw = more fan + everyone chips in. Best way to win.",
+    },
+    {
+      type: "pickOne", prompt: "You self-draw 自摸 your winning tile. Who pays you?",
+      choices: ["Everyone at the table", "Only the player before me"], correct: 0,
+      hint: "Self-draw means all three opponents pay. That's the bonus.",
+    },
+    {
+      type: "teach", title: "Kong 槓 — the fourth tile",
+      say: () => <>Three identical tiles is a pung. A <b>fourth</b> makes a <b>Kong 槓</b>. Declare it, and because a kong “uses up” a tile, you <b>draw a replacement</b> — and pocket a little bonus. Kongs are the only set with four tiles.</>,
+      groups: [
+        { label: "Pung · 3", tiles: [Ch(5), Ch(5), Ch(5)] },
+        { label: "Kong 槓 · 4", tiles: [Ch(5), Ch(5), Ch(5), Ch(5)] },
+      ],
+    },
+    {
+      type: "pickSet", prompt: "Tap the Kong",
+      options: [
+        { tiles: [D(2), D(2), D(2)] },
+        { tiles: [B(9), B(9), B(9), B(9)] },
+        { tiles: [W("北"), W("北")] },
+      ],
+      correct: 1, hint: "Four identical tiles = a kong. Three is only a pung.",
+    },
+    {
+      type: "teach", title: "Lucky wins",
+      say: () => <>A few wins carry their own fan just for <i>how</i> they happen: winning on the <b>very last tile</b>, winning on your <b>replacement draw</b> after a kong, or <b>robbing a kong</b> (winning on the tile someone adds to a pung). Rare, delightful, and bragged about for years.</>,
+      tiles: [], requireAll: false, note: "The game rewards drama. So will your family.",
+    },
+  ],
+  11: [
+    {
+      type: "teach", title: "Defense saves more than offense",
+      say: () => <>Here's the lesson that protects your wallet. If you discard the exact tile an opponent needs, <b>you alone pay</b> — that's <b>出銃 ceot cung</b> (“firing the gun”). When someone looks close to winning, stop pushing and play <b>safe</b>.</>,
+      tiles: [], requireAll: false, note: "A reckless discard can cost you the whole hand's payout.",
+    },
+    {
+      type: "teach", title: "Read the pond",
+      say: () => <>The safest tile to throw is one <b>already sitting in the pond</b> — if nobody claimed it before, nobody can win on it now. Watch what a fast player discards: they're telling you what they <i>don't</i> need.</>,
+      groups: [{ label: "Already discarded = safer to repeat", tiles: [B(1), B(1)] }],
+      note: "“It didn't win last time” is a mahjong player's safety net.",
+    },
+    {
+      type: "pickOne", prompt: "An opponent looks one tile from winning. The 9 of Dots is already in the pond, untouched. Safest discard?",
+      tiles: [D(9), Ch(3), B(5)], correct: 0,
+      hint: "A tile already discarded and not claimed can't be a winning wait. Repeat it.",
+    },
+    {
+      type: "teach", title: "When to fold",
+      say: () => <>If your hand is far from winning and someone's clearly close, <b>give up the hand</b> — discard only safe tiles and deny them. Losing a few points beats paying a big hand. Good players lose <i>small</i>.</>,
+      tiles: [], requireAll: false, note: "You can't win every hand. You can avoid paying for the worst ones.",
+    },
+    {
+      type: "pickOne", prompt: "Your hand is a mess and South is about to win. What's the right play?",
+      choices: ["Discard only safe tiles & defend", "Chase my own long-shot win"], correct: 0,
+      hint: "Far from winning + opponent close = defend. Lose small.",
+    },
+  ],
+  12: [
+    {
+      type: "teach", title: "Setting the table 開枱",
+      say: () => <>Time for the real thing. Everyone <b>washes the tiles</b> face-down — that shuffling clatter is the “sparrow chatter” the game is named for — then each player <b>builds a wall</b> of stacked tiles in front of them.</>,
+      tiles: [], requireAll: false, note: "洗牌 (wash) → build four walls → you've made the square.",
+    },
+    {
+      type: "teach", title: "Dice & the deal",
+      say: () => <>The dealer <b>rolls dice</b> to pick where to break the wall — keeping it fair and unpredictable. Then tiles are dealt around until everyone holds <b>13</b> (the dealer takes the first turn with 14). Now you play the loop you already know.</>,
+      tiles: [], requireAll: false, note: "Dice decide the break point. 13 tiles each. Go.",
+    },
+    {
+      type: "pickOne", prompt: "How many tiles does each player hold to start (before drawing)?",
+      choices: ["13", "14", "16"], correct: 0,
+      hint: "Thirteen each; the dealer draws into 14 to take the first turn.",
+    },
+    {
+      type: "teach", title: "Table manners",
+      say: () => <>Etiquette keeps the peace: discard <b>tidily into the pond</b>, <b>announce your calls clearly</b> (碰! 食糊!), never reach into someone else's tiles, and <b>settle up promptly</b>. Slow, sloppy, or silent play is how you become the relative nobody invites.</>,
+      tiles: [], requireAll: false, note: "Clear calls, neat pond, quick payment. That's a welcome guest.",
+    },
+    {
+      type: "teach", title: "You're table-ready 🎉",
+      say: (t) => <>Tiles, sets, the winning shape, turns, calls, scoring, defense, and the rituals — <b>you know how to play Hong Kong mahjong.</b> Sit down with confidence. Next stop: a full game against our bots in <b>Simulation mode</b> — coming soon to put it all together.</>,
+      tiles: [Dr("r")], requireAll: false,
     },
   ],
 };
 
 const LESSONS = [
-  { id: 1, name: "Meet the Tiles", cn: "認牌", sub: "The three suits", color: "#E2231A", Icon: IconTile },
-  { id: 2, name: "Winds & Dragons", cn: "風與龍", sub: "The honor tiles", color: "#0860A8", Icon: IconDragon },
-  { id: 3, name: "Building Sets", cn: "砌組合", sub: "Pung · Chow · Pair", color: "#00A862", Icon: IconSteamer },
-  { id: 4, name: "The Winning Hand", cn: "食糊", sub: "4 sets + a pair", color: "#7D499D", Icon: IconNeonWin },
-  { id: 5, name: "Your First Turn", cn: "打牌", sub: "Draw & discard", color: "#F7943E", Icon: IconTaxi },
-  { id: 6, name: "Calling Tiles", cn: "叫牌", sub: "Pung! Sik wu!", color: "#9C5B25", Icon: IconPung },
+  { id: 1, name: "Meet the Tiles", cn: "認牌", sub: "The three suits", color: "#E2231A", Icon: IconTile, unit: 1 },
+  { id: 2, name: "Winds & Dragons", cn: "風與龍", sub: "The honor tiles", color: "#0860A8", Icon: IconDragon, unit: 1 },
+  { id: 3, name: "Building Sets", cn: "砌組合", sub: "Pung · Chow · Pair", color: "#00A862", Icon: IconSteamer, unit: 1 },
+  { id: 4, name: "The Winning Hand", cn: "食糊", sub: "4 sets + a pair", color: "#7D499D", Icon: IconNeonWin, unit: 1 },
+  { id: 5, name: "Your First Turn", cn: "打牌", sub: "Draw & discard", color: "#F7943E", Icon: IconTaxi, unit: 1 },
+  { id: 6, name: "Calling Tiles", cn: "叫牌", sub: "Pung! Sik wu!", color: "#9C5B25", Icon: IconPung, unit: 1 },
+  { id: 7, name: "What's a Fan?", cn: "番數", sub: "How scoring works", color: "#B8860B", Icon: IconFan, unit: 2 },
+  { id: 8, name: "The Money Hands", cn: "大牌", sub: "Patterns worth chasing", color: "#C0392B", Icon: IconMoneyHand, unit: 2 },
+  { id: 9, name: "Your Seat, Your Wind", cn: "門風", sub: "Seat & round winds", color: "#2E86C1", Icon: IconSeat, unit: 2 },
+  { id: 10, name: "Self-Draw & Kong", cn: "自摸槓", sub: "Zi mo & the 4th tile", color: "#16A085", Icon: IconKong, unit: 2 },
+  { id: 11, name: "Defense", cn: "出銃", sub: "Don't feed the winner", color: "#7D3C98", Icon: IconShield, unit: 2 },
+  { id: 12, name: "At the Table", cn: "開枱", sub: "Rituals & graduation", color: "#D35400", Icon: IconTrophy, unit: 2 },
 ];
 
 const COMPLETE_COPY = {
@@ -935,7 +1206,17 @@ const COMPLETE_COPY = {
   3: "Pair, pung, chow — you speak mahjong's entire vocabulary now. Time to assemble a winning hand.",
   4: "You know the winning shape: 4 sets + a pair. From here on, every tile is either helping or in the way.",
   5: "Draw, judge, discard — you could sit at a table right now and hold your own. Next: interrupting everyone else.",
-  6: "That's the full game loop — you officially know how to play Hong Kong mahjong. Unit 2 brings scoring 番 and the strategy that wins money.",
+  6: "That's the full game loop — you know how to play. Now Unit 2 turns you from “can play” into “can win.”",
+  7: "Fan, demystified — you get how a win earns its value, and why cheap hands don't count. Next: the big-money patterns.",
+  8: "All Pungs, one-suit hands — you now know the shapes worth chasing for real points. Next: the winds that pay you.",
+  9: "Seat wind, round wind, the dealer's double — you can spot the winds that quietly add up. Next: self-draw & kong.",
+  10: "Self-draw, kong, and the lucky wins — your scoring toolkit is complete. Next: the skill that saves your wallet.",
+  11: "Defense — the difference between losing small and losing big. One lesson left: sitting down for real.",
+  12: "That's the whole game — rules, scoring, strategy, and table manners. You're officially table-ready. 🀄",
+};
+
+const UNIT_META = {
+  2: { name: "Unit 2 · Scoring & Strategy", cn: "番數同戰術" },
 };
 
 /* ---------------- CONFETTI ---------------- */
@@ -1037,7 +1318,7 @@ function Home({ stars, completed, teacher, onStart, onSettings, onLogo }) {
         </div>
         <span style={{ color: "#fff", fontWeight: 800, fontSize: 15.5, fontFamily: T.fontDisplay, letterSpacing: ".01em" }}>Sparrow Line</span>
         <span style={{ color: "#B9C0C9", fontWeight: 700, fontSize: 14, fontFamily: "'Noto Sans TC',sans-serif" }}>雀線</span>
-        <span style={{ marginLeft: "auto", color: "#B9C0C9", fontWeight: 800, fontSize: 12.5 }}>{completed.length}/6</span>
+        <span style={{ marginLeft: "auto", color: "#B9C0C9", fontWeight: 800, fontSize: 12.5 }}>{completed.length}/{LESSONS.length}</span>
       </div>
 
       {/* MTR-diagram lesson path */}
@@ -1046,8 +1327,22 @@ function Home({ stars, completed, teacher, onStart, onSettings, onLogo }) {
           const done = completed.includes(l.id);
           const unlocked = l.id === 1 || completed.includes(l.id - 1);
           const prevDone = i === 0 ? true : completed.includes(LESSONS[i - 1].id);
+          const unitStart = i > 0 && l.unit !== LESSONS[i - 1].unit;
           return (
-            <div key={l.id} style={{ display: "grid", gridTemplateColumns: "44px 1fr", gap: 12 }}>
+            <React.Fragment key={l.id}>
+              {unitStart && UNIT_META[l.unit] && (
+                <div style={{ display: "grid", gridTemplateColumns: "44px 1fr", gap: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div style={{ width: 10, minHeight: 18, background: prevDone ? LESSONS[i - 1].color : T.barTrack }} />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, background: MTR_INK, borderRadius: 11, padding: "9px 14px", margin: "6px 0 2px" }}>
+                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: l.color, flexShrink: 0 }} />
+                    <span style={{ color: "#fff", fontWeight: 800, fontSize: 14.5, fontFamily: T.fontDisplay }}>{UNIT_META[l.unit].name}</span>
+                    <span style={{ color: "#B9C0C9", fontWeight: 700, fontSize: 13, fontFamily: "'Noto Sans TC',sans-serif", marginLeft: "auto" }}>{UNIT_META[l.unit].cn}</span>
+                  </div>
+                </div>
+              )}
+            <div style={{ display: "grid", gridTemplateColumns: "44px 1fr", gap: 12 }}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                 <div style={{ width: 10, flex: 1, minHeight: 12, background: i === 0 ? "transparent" : prevDone ? LESSONS[i - 1].color : T.barTrack }} />
                 <StationDot done={done} active={unlocked && !done} color={l.color} />
@@ -1093,25 +1388,26 @@ function Home({ stars, completed, teacher, onStart, onSettings, onLogo }) {
                 {!unlocked && !done && <span style={{ fontSize: 15 }}>🔒</span>}
               </button>
             </div>
+            </React.Fragment>
           );
         })}
 
-        {/* line extension: Unit 2 */}
+        {/* line extension: Unit 3 / Simulation horizon */}
         <div style={{ display: "grid", gridTemplateColumns: "44px 1fr", gap: 12 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div style={{ width: 0, flex: 1, minHeight: 16, borderLeft: `4px dashed ${completed.length === 6 ? "#9C5B25" : "#CFCBC2"}` }} />
+            <div style={{ width: 0, flex: 1, minHeight: 16, borderLeft: `4px dashed ${completed.length === LESSONS.length ? "#D35400" : "#CFCBC2"}` }} />
             <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#fff", border: `4px dashed ${MTR_INK}66` }} />
           </div>
           <div style={{
             border: `2px dashed ${T.cardBorder}`, borderRadius: T.radius,
             padding: "14px 16px", margin: "8px 0 4px", minHeight: 70,
-            display: "flex", alignItems: "center", gap: 13, opacity: 0.85,
+            display: "flex", alignItems: "center", gap: 13, opacity: 0.9,
           }}>
-            <div style={{ fontSize: 23 }}>🚧</div>
+            <div style={{ fontSize: 23 }}>🀄</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 800, fontSize: 15.5, color: T.sub, fontFamily: T.fontDisplay }}>Unit 2 — Scoring & Strategy</div>
+              <div style={{ fontWeight: 800, fontSize: 15.5, color: T.sub, fontFamily: T.fontDisplay }}>Simulation — play a full game</div>
               <div style={{ fontSize: 13, color: T.sub, marginTop: 1 }}>
-                <span style={{ fontFamily: "'Noto Sans TC',sans-serif", fontWeight: 700 }}>番數同戰術</span> · 6 more stations under construction
+                <span style={{ fontFamily: "'Noto Sans TC',sans-serif", fontWeight: 700 }}>對戰</span> · graduate to a real game vs. the bots — coming soon
               </div>
             </div>
           </div>
@@ -1481,7 +1777,7 @@ function Complete({ stars, lessonId, teacher, onHome }) {
       <Confetti />
       <A size={124} />
       <h2 style={{ fontFamily: T.fontDisplay, fontSize: 30, fontWeight: 800, color: T.ink, margin: "16px 0 8px", letterSpacing: T.displaySpacing }}>
-        {lessonId === 6 ? "You can play mahjong!" : "Lesson complete!"}
+        {lessonId === 12 ? "You're a mahjong graduate! 🀄" : lessonId === 6 ? "Unit 1 complete!" : "Lesson complete!"}
       </h2>
       <p style={{ fontSize: 16.5, color: T.sub, lineHeight: 1.6, margin: "0 0 20px", maxWidth: 360 }}>
         {COMPLETE_COPY[lessonId]}
@@ -1790,7 +2086,7 @@ function Account({ account, onSendLink, onSignOut, onBack, stars, completed, clo
               <div style={{ fontSize: 12.5, color: T.sub, marginTop: 2 }}>stars earned</div>
             </div>
             <div style={{ flex: 1, textAlign: "center", background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 16, padding: "16px 0", boxShadow: T.cardShadow }}>
-              <div style={{ fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 26, color: T.ink }}>{completed.length}/6</div>
+              <div style={{ fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 26, color: T.ink }}>{completed.length}/{LESSONS.length}</div>
               <div style={{ fontSize: 12.5, color: T.sub, marginTop: 2 }}>lessons done</div>
             </div>
           </div>
@@ -1957,7 +2253,7 @@ function Profile({ teacher, account, stars, completed, onLogo, onSettings, onAcc
         </div>
       </div>
       <div style={{ display: "flex", gap: 11, margin: "18px 0" }}>
-        {[["★ " + stars, "stars"], [completed.length + "/6", "lessons"], ["0", "day streak"]].map((s, i) => (
+        {[["★ " + stars, "stars"], [completed.length + "/" + LESSONS.length, "lessons"], ["0", "day streak"]].map((s, i) => (
           <div key={i} style={{ flex: 1, textAlign: "center", background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 16, padding: "15px 0", boxShadow: T.cardShadow }}>
             <div style={{ fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 22, color: T.ink }}>{s[0]}</div>
             <div style={{ fontSize: 12, color: T.sub, marginTop: 2 }}>{s[1]}</div>
