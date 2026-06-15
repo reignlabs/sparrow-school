@@ -1289,7 +1289,7 @@ function StationDot({ done, active, color }) {
   );
 }
 
-function Home({ stars, completed, teacher, onStart, onSettings, onLogo }) {
+function Home({ stars, completed, teacher, onStart, onSettings, onLogo, onSim }) {
   const T = useT();
   const A = teacher.Comp;
   return (
@@ -1392,25 +1392,28 @@ function Home({ stars, completed, teacher, onStart, onSettings, onLogo }) {
           );
         })}
 
-        {/* line extension: Unit 3 / Simulation horizon */}
+        {/* line extension: Simulation — now playable */}
         <div style={{ display: "grid", gridTemplateColumns: "44px 1fr", gap: 12 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div style={{ width: 0, flex: 1, minHeight: 16, borderLeft: `4px dashed ${completed.length === LESSONS.length ? "#D35400" : "#CFCBC2"}` }} />
-            <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#fff", border: `4px dashed ${MTR_INK}66` }} />
+            <div style={{ width: 0, flex: 1, minHeight: 16, borderLeft: `4px dashed #D35400` }} />
+            <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#fff", border: `4px solid #D35400` }} />
           </div>
-          <div style={{
-            border: `2px dashed ${T.cardBorder}`, borderRadius: T.radius,
-            padding: "14px 16px", margin: "8px 0 4px", minHeight: 70,
-            display: "flex", alignItems: "center", gap: 13, opacity: 0.9,
+          <button onClick={onSim} className="ss-btn ss-glow" style={{
+            border: `1.5px solid #D35400`, borderRadius: T.radius, background: "#FFF1E6",
+            padding: "14px 16px", margin: "8px 0 4px", minHeight: 78, width: "100%", textAlign: "left",
+            display: "flex", alignItems: "center", gap: 13, cursor: "pointer",
+            boxShadow: T.btnEdge ? "0 4px 0 #E8C5A8" : T.cardShadow, fontFamily: T.fontBody,
+            WebkitTapHighlightColor: "transparent",
           }}>
-            <div style={{ fontSize: 23 }}>🀄</div>
+            <div style={{ width: 50, height: 50, borderRadius: 13, flexShrink: 0, background: "#D3540022", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>🀄</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 800, fontSize: 15.5, color: T.sub, fontFamily: T.fontDisplay }}>Simulation — play a full game</div>
+              <div style={{ fontWeight: 800, fontSize: 16, color: T.ink, fontFamily: T.fontDisplay }}>Play a full game</div>
               <div style={{ fontSize: 13, color: T.sub, marginTop: 1 }}>
-                <span style={{ fontFamily: "'Noto Sans TC',sans-serif", fontWeight: 700 }}>對戰</span> · graduate to a real game vs. the bots — coming soon
+                <span style={{ fontFamily: "'Noto Sans TC',sans-serif", fontWeight: 700, color: "#D35400" }}>對戰</span> · a real hand vs. three bots
               </div>
             </div>
-          </div>
+            <span style={{ color: "#D35400", fontSize: 21, fontWeight: 800 }}>›</span>
+          </button>
         </div>
       </div>
     </div>
@@ -1769,23 +1772,27 @@ function Lesson({ lessonId, teacher, onExit, onComplete, addStars }) {
   );
 }
 
-function Complete({ stars, lessonId, teacher, onHome }) {
+function Complete({ stars, lessonId, teacher, onHome, onSim }) {
   const T = useT();
   const A = teacher.Comp;
+  const graduated = lessonId === 12;
   return (
     <div style={{ position: "relative", minHeight: "min(92dvh, 740px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 26px", textAlign: "center" }}>
       <Confetti />
       <A size={124} />
       <h2 style={{ fontFamily: T.fontDisplay, fontSize: 30, fontWeight: 800, color: T.ink, margin: "16px 0 8px", letterSpacing: T.displaySpacing }}>
-        {lessonId === 12 ? "You're a mahjong graduate! 🀄" : lessonId === 6 ? "Unit 1 complete!" : "Lesson complete!"}
+        {graduated ? "You're a mahjong graduate! 🀄" : lessonId === 6 ? "Unit 1 complete!" : "Lesson complete!"}
       </h2>
       <p style={{ fontSize: 16.5, color: T.sub, lineHeight: 1.6, margin: "0 0 20px", maxWidth: 360 }}>
         {COMPLETE_COPY[lessonId]}
       </p>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 999, padding: "12px 24px", fontWeight: 800, fontSize: 19, color: T.ink, boxShadow: T.chipShadow, marginBottom: 30, backdropFilter: T.glass ? "blur(18px)" : undefined }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 999, padding: "12px 24px", fontWeight: 800, fontSize: 19, color: T.ink, boxShadow: T.chipShadow, marginBottom: 24, backdropFilter: T.glass ? "blur(18px)" : undefined }}>
         <span style={{ color: T.star, fontSize: 22 }}>★</span> {stars} stars
       </div>
-      <Btn onClick={onHome} style={{ maxWidth: 330 }}>Back to the line</Btn>
+      {graduated && onSim && (
+        <Btn onClick={onSim} tone="success" style={{ maxWidth: 330, marginBottom: 10 }}>🀄 Play your first real game</Btn>
+      )}
+      <Btn onClick={onHome} tone={graduated ? "primary" : "primary"} style={{ maxWidth: 330, ...(graduated ? { background: T.card, color: T.ink, boxShadow: T.cardShadow, border: `1.5px solid ${T.cardBorder}` } : {}) }}>Back to the line</Btn>
     </div>
   );
 }
@@ -2279,6 +2286,381 @@ function Profile({ teacher, account, stars, completed, onLogo, onSettings, onAcc
   );
 }
 
+/* ================= SIMULATION: engine (validated) ================= */
+
+function simKey(t) {
+  if (t.s === "dots") return "o" + t.n;
+  if (t.s === "bamboo") return "b" + t.n;
+  if (t.s === "char") return "k" + t.n;
+  if (t.s === "wind") return "w" + t.c;
+  return "z" + t.d;
+}
+function simFromKey(k) {
+  const p = k[0], r = k.slice(1);
+  if (p === "o") return { s: "dots", n: +r };
+  if (p === "b") return { s: "bamboo", n: +r };
+  if (p === "k") return { s: "char", n: +r };
+  if (p === "w") return { s: "wind", c: r };
+  return { s: "dragon", d: r };
+}
+const simSuited = (k) => k[0] === "o" || k[0] === "b" || k[0] === "k";
+const SIM_WIND_ORD = { "東": 0, "南": 1, "西": 2, "北": 3 };
+const SIM_DRAG_ORD = { r: 0, g: 1, w: 2 };
+function simRank(k) {
+  const n = +k.slice(1);
+  if (k[0] === "o") return 0 + n / 100;
+  if (k[0] === "b") return 1 + n / 100;
+  if (k[0] === "k") return 2 + n / 100;
+  if (k[0] === "w") return 3 + SIM_WIND_ORD[k.slice(1)] / 100;
+  return 4 + SIM_DRAG_ORD[k.slice(1)] / 100;
+}
+const simSort = (keys) => [...keys].sort((a, b) => simRank(a) - simRank(b));
+function simWall() {
+  const w = [];
+  for (const p of ["o", "b", "k"]) for (let n = 1; n <= 9; n++) for (let i = 0; i < 4; i++) w.push(p + n);
+  for (const c of ["東", "南", "西", "北"]) for (let i = 0; i < 4; i++) w.push("w" + c);
+  for (const d of ["r", "g", "w"]) for (let i = 0; i < 4; i++) w.push("z" + d);
+  for (let i = w.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [w[i], w[j]] = [w[j], w[i]]; }
+  return w;
+}
+function simCounts(keys) { const m = {}; for (const k of keys) m[k] = (m[k] || 0) + 1; return m; }
+function simDecompose(c, need) {
+  const keys = Object.keys(c).filter((k) => c[k] > 0).sort();
+  if (keys.length === 0) return need === 0;
+  if (need === 0) return false;
+  const k = keys[0];
+  if (c[k] >= 3) { c[k] -= 3; if (simDecompose(c, need - 1)) { c[k] += 3; return true; } c[k] += 3; }
+  if (simSuited(k)) {
+    const s = k[0], n = +k.slice(1), k1 = s + (n + 1), k2 = s + (n + 2);
+    if (n <= 7 && c[k1] > 0 && c[k2] > 0) {
+      c[k]--; c[k1]--; c[k2]--;
+      if (simDecompose(c, need - 1)) { c[k]++; c[k1]++; c[k2]++; return true; }
+      c[k]++; c[k1]++; c[k2]++;
+    }
+  }
+  return false;
+}
+function simIsWin(handKeys, meldsCount) {
+  const need = 4 - meldsCount;
+  if (handKeys.length !== need * 3 + 2) return false;
+  const c = simCounts(handKeys);
+  for (const k of Object.keys(c)) {
+    if (c[k] >= 2) { c[k] -= 2; if (simDecompose(c, need)) { c[k] += 2; return true; } c[k] += 2; }
+  }
+  return false;
+}
+const simCanPung = (h, t) => h.filter((k) => k === t).length >= 2;
+function simCanChow(h, t) {
+  if (!simSuited(t)) return false;
+  const s = t[0], n = +t.slice(1), has = (x) => h.includes(s + x);
+  return (n >= 3 && has(n - 2) && has(n - 1)) || (n >= 2 && n <= 8 && has(n - 1) && has(n + 1)) || (n <= 7 && has(n + 1) && has(n + 2));
+}
+const simCanWinWith = (h, m, t) => simIsWin([...h, t], m);
+function simUseful(k, c) {
+  let s = (c[k] - 1) * 3;
+  if (simSuited(k)) {
+    const su = k[0], n = +k.slice(1);
+    for (const [d, w] of [[-1, 2], [1, 2], [-2, 1], [2, 1]]) { const nn = n + d; if (nn >= 1 && nn <= 9 && c[su + nn] > 0) s += w; }
+  }
+  return s;
+}
+function simBotDiscard(h) {
+  const c = simCounts(h);
+  let worst = h[0], ws = Infinity;
+  for (const k of [...new Set(h)]) { const u = simUseful(k, c) + Math.random() * 0.5; if (u < ws) { ws = u; worst = k; } }
+  return worst;
+}
+
+/* ================= SIMULATION: UI ================= */
+
+const SEAT_INFO = [
+  { name: "You", wind: "東", tag: "dealer" },     // bottom
+  { name: "Auntie", wind: "南", tag: "" },          // right
+  { name: "Uncle", wind: "西", tag: "" },           // top
+  { name: "Grandma", wind: "北", tag: "" },         // left
+];
+
+function TileBackRow({ n, horizontal }) {
+  const T = useT();
+  return (
+    <div style={{ display: "flex", flexDirection: horizontal ? "column" : "row", gap: 2 }}>
+      {Array.from({ length: Math.min(n, 13) }).map((_, i) => (
+        <div key={i} style={{
+          width: horizontal ? 22 : 13, height: horizontal ? 13 : 22, borderRadius: 3,
+          background: "linear-gradient(135deg,#3FA877,#2E8C60)", border: "1px solid #246E4B",
+        }} />
+      ))}
+    </div>
+  );
+}
+
+function OpponentPanel({ seat, count, lastDiscard, active, side }) {
+  const T = useT();
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, opacity: active ? 1 : 0.92 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div className={active ? "ss-beat" : ""} style={{ width: 30, height: 30, borderRadius: "50%", background: active ? T.primary : T.card, border: `2px solid ${active ? T.primary : T.cardBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: active ? "#fff" : T.sub, fontFamily: "'Noto Sans TC',sans-serif" }}>{seat.wind}</div>
+        <div style={{ fontSize: 12.5, fontWeight: 800, color: T.ink }}>{seat.name}</div>
+      </div>
+      <TileBackRow n={count} horizontal={side === "left" || side === "right"} />
+      <div style={{ minHeight: 30 }}>
+        {lastDiscard && <div style={{ transform: "scale(.8)" }}><MiniTile t={simFromKey(lastDiscard)} size={32} /></div>}
+      </div>
+    </div>
+  );
+}
+
+function Sim({ teacher, onExit }) {
+  const T = useT();
+  const [g, setG] = useState(null);
+  const [tips, setTips] = useState(true);
+  const timer = useRef(null);
+
+  // ---- init ----
+  const start = () => {
+    const wall = simWall();
+    const hands = [[], [], [], []];
+    for (let i = 0; i < 13; i++) for (let p = 0; p < 4; p++) hands[p].push(wall.pop());
+    // dealer (you) draws to 14, you discard first
+    hands[0].push(wall.pop());
+    setG({
+      wall, hands, melds: [[], [], [], []], pond: [],
+      last: [null, null, null, null],
+      cur: 0, phase: "myturn", wallLeft: wall.length,
+      msg: "Your move — tap a tile to discard.",
+      offer: null, over: null,
+    });
+  };
+  useEffect(() => { start(); return () => clearTimeout(timer.current); }, []);
+
+  // ---- helpers ----
+  const youWin = (g, fromSelf, fromSeat) => ({ ...g, phase: "over", over: { winner: 0, self: fromSelf, from: fromSeat }, msg: fromSelf ? "自摸! You self-drew the win!" : "食糊! You won off the discard!" });
+  const botWins = (g, p, fromSelf, fromSeat) => ({ ...g, phase: "over", over: { winner: p, self: fromSelf, from: fromSeat }, msg: `${SEAT_INFO[p].name} wins${fromSelf ? " (self-draw)" : ""}.` });
+
+  // advance to a given player's draw (bot or you)
+  const goDraw = (gg, p) => {
+    if (gg.wall.length === 0) { setG({ ...gg, phase: "over", over: { winner: -1 }, msg: "Wall's empty — washout. Nobody wins this hand." }); return; }
+    const wall = [...gg.wall];
+    const drawn = wall.pop();
+    const hands = gg.hands.map((h) => [...h]);
+    hands[p].push(drawn);
+    if (p === 0) {
+      // your draw — can you self-win?
+      const selfWin = simIsWin(hands[0], gg.melds[0].length);
+      setG({ ...gg, wall, hands, cur: 0, phase: "myturn", wallLeft: wall.length, drawn, msg: selfWin ? "You can declare 自摸!" : "You drew a tile — tap one to discard.", offer: selfWin ? { win: true } : null });
+    } else {
+      // bot draw
+      if (simIsWin(hands[p], gg.melds[p].length)) { setG(botWins({ ...gg, wall, hands }, p, true)); return; }
+      const disc = simBotDiscard(hands[p]);
+      hands[p].splice(hands[p].indexOf(disc), 1);
+      afterDiscard({ ...gg, wall, hands }, p, disc);
+    }
+  };
+
+  // resolve claims after a discard by player `from`
+  const afterDiscard = (gg, from, tile) => {
+    const pond = [...gg.pond, { t: tile, by: from }];
+    const last = [...gg.last]; last[from] = tile;
+    const base = { ...gg, pond, last, drawn: null };
+    // 1) does any bot win on it? (in seat order)
+    for (let o = 1; o <= 3; o++) {
+      const p = (from + o) % 4;
+      if (p !== 0 && simCanWinWith(base.hands[p], base.melds[p].length, tile)) { setG(botWins(base, p, false, from)); return; }
+    }
+    // 2) can YOU claim? (win > pung > chow). Chow only from your left = player 3.
+    if (from !== 0) {
+      const youCanWin = simCanWinWith(base.hands[0], base.melds[0].length, tile);
+      const youCanPung = simCanPung(base.hands[0], tile);
+      const youCanChow = from === 3 && simCanChow(base.hands[0], tile);
+      if (youCanWin || youCanPung || youCanChow) {
+        setG({ ...base, cur: from, phase: "claim", offer: { tile, from, win: youCanWin, pung: youCanPung, chow: youCanChow }, msg: `${SEAT_INFO[from].name} discarded — your call?` });
+        return;
+      }
+    }
+    // 3) nobody claims → next player draws
+    const next = (from + 1) % 4;
+    setG({ ...base, cur: next, phase: next === 0 ? "predraw" : "botthinking", offer: null, msg: next === 0 ? "Your turn." : `${SEAT_INFO[next].name} is thinking…` });
+  };
+
+  // ---- bot pacing ----
+  useEffect(() => {
+    if (!g) return;
+    clearTimeout(timer.current);
+    if (g.phase === "botthinking") {
+      timer.current = setTimeout(() => goDraw(g, g.cur), 750);
+    } else if (g.phase === "predraw") {
+      timer.current = setTimeout(() => goDraw(g, 0), 450);
+    }
+    return () => clearTimeout(timer.current);
+  }, [g?.phase, g?.cur]);
+
+  if (!g) return null;
+
+  const myHand = simSort(g.hands[0]);
+  const myMelds = g.melds[0];
+
+  // your discard
+  const discard = (tk, idx) => {
+    if (g.phase !== "myturn") return;
+    clack();
+    const hands = g.hands.map((h) => [...h]);
+    // remove one instance by key
+    const pos = hands[0].indexOf(tk);
+    hands[0].splice(pos, 1);
+    afterDiscard({ ...g, hands, offer: null }, 0, tk);
+  };
+
+  // claim actions
+  const doWin = () => {
+    if (g.offer?.win && g.phase === "claim") setG(youWin({ ...g, hands: g.hands.map(h=>[...h]), hands0add: g.offer.tile }, false, g.offer.from));
+    else if (g.phase === "myturn" && g.offer?.win) setG(youWin(g, true));
+  };
+  const doPung = () => {
+    const tile = g.offer.tile;
+    const hands = g.hands.map((h) => [...h]);
+    // remove two from your hand, form meld with the discard
+    let removed = 0;
+    hands[0] = hands[0].filter((k) => { if (k === tile && removed < 2) { removed++; return false; } return true; });
+    const melds = g.melds.map((m) => [...m]);
+    melds[0] = [...melds[0], { type: "pung", tiles: [tile, tile, tile] }];
+    // pond keeps the claimed tile shown; you now discard
+    setG({ ...g, hands, melds, phase: "myturn", offer: null, cur: 0, msg: "碰! Pung taken — now discard." });
+  };
+  const doChow = () => {
+    const tile = g.offer.tile, s = tile[0], n = +tile.slice(1);
+    const hands = g.hands.map((h) => [...h]);
+    // find a valid pair of tiles to complete the run
+    const combos = [[-2,-1],[-1,1],[1,2]];
+    let used = null;
+    for (const [a,b] of combos) { const ka=s+(n+a), kb=s+(n+b); if (hands[0].includes(ka)&&hands[0].includes(kb)){ used=[ka,kb]; break; } }
+    if (used) { hands[0].splice(hands[0].indexOf(used[0]),1); hands[0].splice(hands[0].indexOf(used[1]),1); }
+    const melds = g.melds.map((m) => [...m]);
+    melds[0] = [...melds[0], { type: "chow", tiles: simSort([tile, ...used]) }];
+    setG({ ...g, hands, melds, phase: "myturn", offer: null, cur: 0, msg: "上! Chow taken — now discard." });
+  };
+  const pass = () => {
+    const from = g.offer.from;
+    const next = (from + 1) % 4;
+    setG({ ...g, offer: null, cur: next, phase: next === 0 ? "predraw" : "botthinking", msg: next === 0 ? "Your turn." : `${SEAT_INFO[next].name} is thinking…` });
+  };
+
+  // tips: mark the most-isolated (suggested discard) tile
+  const suggestKey = useMemo(() => {
+    if (!tips || g.phase !== "myturn") return null;
+    const c = simCounts(g.hands[0]);
+    let worst = null, ws = Infinity;
+    for (const k of [...new Set(g.hands[0])]) { const u = simUseful(k, c); if (u < ws) { ws = u; worst = k; } }
+    return worst;
+  }, [tips, g]);
+
+  const over = g.over;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "min(100dvh,840px)", padding: "12px 14px calc(14px + env(safe-area-inset-bottom,0px))" }}>
+      {/* top bar */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+        <button onClick={onExit} aria-label="Exit game" style={{ background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 12, width: 40, height: 40, fontSize: 16, color: T.sub, cursor: "pointer", boxShadow: T.chipShadow }}>✕</button>
+        <div style={{ flex: 1, fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 16, color: T.ink }}>Practice Table <span style={{ color: T.sub, fontWeight: 700, fontSize: 13 }}>· wall {g.wallLeft ?? g.wall.length}</span></div>
+        <button onClick={() => setTips((v) => !v)} style={{ background: tips ? T.primary : T.card, color: tips ? "#fff" : T.sub, border: `1.5px solid ${tips ? T.primary : T.cardBorder}`, borderRadius: 999, padding: "7px 13px", fontWeight: 800, fontSize: 12.5, cursor: "pointer", boxShadow: T.chipShadow }}>Tips {tips ? "on" : "off"}</button>
+      </div>
+
+      {/* table */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", background: "radial-gradient(120% 90% at 50% 45%, #1F7A55 0%, #16603F 70%, #124E34 100%)", borderRadius: 22, padding: "12px 10px", position: "relative", boxShadow: "inset 0 2px 14px rgba(0,0,0,.25)" }}>
+        {/* top opponent */}
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <OpponentPanel seat={SEAT_INFO[2]} count={g.hands[2].length} lastDiscard={g.last[2]} active={g.cur === 2} side="top" />
+        </div>
+        {/* middle: left opp · pond · right opp */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, padding: "4px 0" }}>
+          <OpponentPanel seat={SEAT_INFO[3]} count={g.hands[3].length} lastDiscard={g.last[3]} active={g.cur === 3} side="left" />
+          <div style={{ flex: 1, alignSelf: "stretch", display: "flex", flexWrap: "wrap", alignContent: "center", justifyContent: "center", gap: 3, minHeight: 86, maxWidth: 230, margin: "0 auto" }}>
+            {g.pond.slice(-15).map((d, i) => (
+              <div key={i} style={{ transform: "scale(.62)", margin: -4 }}><MiniTile t={simFromKey(d.t)} size={34} /></div>
+            ))}
+          </div>
+          <OpponentPanel seat={SEAT_INFO[1]} count={g.hands[1].length} lastDiscard={g.last[1]} active={g.cur === 1} side="right" />
+        </div>
+        {/* message */}
+        <div style={{ textAlign: "center", color: "#EAFBF1", fontWeight: 800, fontSize: 14.5, minHeight: 22, fontFamily: T.fontDisplay, textShadow: "0 1px 3px rgba(0,0,0,.4)" }}>{g.msg}</div>
+      </div>
+
+      {/* your melds */}
+      {myMelds.length > 0 && (
+        <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+          {myMelds.map((m, i) => (
+            <div key={i} style={{ display: "flex", gap: 1, background: "rgba(0,0,0,.05)", borderRadius: 7, padding: 3 }}>
+              {m.tiles.map((t, j) => <MiniTile key={j} t={simFromKey(t)} size={26} />)}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* your hand */}
+      <div style={{ marginTop: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+          <span style={{ width: 22, height: 22, borderRadius: "50%", background: g.cur === 0 ? T.primary : T.card, border: `2px solid ${g.cur === 0 ? T.primary : T.cardBorder}`, color: g.cur === 0 ? "#fff" : T.sub, fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Noto Sans TC',sans-serif" }}>東</span>
+          <span style={{ fontSize: 12.5, fontWeight: 800, color: T.sub }}>Your hand{g.phase === "myturn" ? " · tap to discard" : ""}</span>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center" }}>
+          {myHand.map((tk, i) => {
+            const isDrawn = tk === g.drawn && g.phase === "myturn";
+            const suggested = tk === suggestKey;
+            return (
+              <button key={i} onClick={() => discard(tk, i)} disabled={g.phase !== "myturn"}
+                className="ss-deal"
+                style={{
+                  border: "none", background: "none", padding: 0, cursor: g.phase === "myturn" ? "pointer" : "default",
+                  borderRadius: 9, animationDelay: `${i * 18}ms`,
+                  boxShadow: suggested ? `0 0 0 3px ${T.primary}` : isDrawn ? `0 0 0 3px ${T.star}` : "none",
+                  transform: g.phase === "myturn" ? "translateY(0)" : "none",
+                  WebkitTapHighlightColor: "transparent",
+                }}>
+                <MiniTile t={simFromKey(tk)} size={Math.min(40, Math.floor(320 / Math.max(myHand.length, 13)) + 8)} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* action bar */}
+      {g.phase === "claim" && g.offer && (
+        <div className="ss-sheet" style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          {g.offer.win && <button onClick={() => setG(youWin(g, false, g.offer.from))} className="ss-btn" style={{ flex: 1, minHeight: 52, fontWeight: 800, fontSize: 16, color: "#fff", background: T.star, border: "none", borderRadius: 14, boxShadow: `0 4px 0 #C99200`, cursor: "pointer", fontFamily: T.fontBody }}>食糊!</button>}
+          {g.offer.pung && <button onClick={doPung} className="ss-btn" style={{ flex: 1, minHeight: 52, fontWeight: 800, fontSize: 16, color: "#fff", background: T.primary, border: "none", borderRadius: 14, boxShadow: `0 4px 0 ${T.primaryDeep}`, cursor: "pointer", fontFamily: T.fontBody }}>碰 Pung</button>}
+          {g.offer.chow && <button onClick={doChow} className="ss-btn" style={{ flex: 1, minHeight: 52, fontWeight: 800, fontSize: 16, color: T.ink, background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 14, boxShadow: T.cardShadow, cursor: "pointer", fontFamily: T.fontBody }}>上 Chow</button>}
+          <button onClick={pass} style={{ flex: 1, minHeight: 52, fontWeight: 800, fontSize: 16, color: T.sub, background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 14, boxShadow: T.cardShadow, cursor: "pointer", fontFamily: T.fontBody }}>Pass</button>
+        </div>
+      )}
+      {g.phase === "myturn" && g.offer?.win && (
+        <div className="ss-sheet" style={{ marginTop: 12 }}>
+          <button onClick={() => setG(youWin(g, true))} className="ss-btn" style={{ width: "100%", minHeight: 54, fontWeight: 800, fontSize: 17, color: "#fff", background: T.star, border: "none", borderRadius: 16, boxShadow: `0 4px 0 #C99200`, cursor: "pointer", fontFamily: T.fontBody }}>自摸! Declare self-draw win</button>
+        </div>
+      )}
+
+      {/* game over */}
+      {g.phase === "over" && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(20,14,26,.6)", backdropFilter: "blur(4px)", padding: 24 }}>
+          {over.winner === 0 && <Confetti />}
+          <div style={{ position: "relative", width: "min(420px,100%)", background: T.surface, borderRadius: 26, padding: "30px 24px", textAlign: "center", boxShadow: "0 24px 60px rgba(0,0,0,.4)" }}>
+            <div style={{ fontSize: 52 }}>{over.winner === 0 ? "🏆" : over.winner === -1 ? "🀄" : "🙇"}</div>
+            <h2 style={{ fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 24, color: T.ink, margin: "10px 0 6px" }}>
+              {over.winner === 0 ? (over.self ? "自摸! You win!" : "食糊! You win!") : over.winner === -1 ? "Washout" : `${SEAT_INFO[over.winner].name} wins`}
+            </h2>
+            <p style={{ fontSize: 14.5, color: T.sub, lineHeight: 1.5, margin: "0 0 20px" }}>
+              {over.winner === 0 ? "You assembled 4 sets and a pair — that's a real Hong Kong mahjong win. Nicely played." :
+               over.winner === -1 ? "The wall ran out before anyone completed a hand. It happens — deal again." :
+               over.from === 0 ? "They won off your discard (出銃). Watch what you throw when someone looks close." :
+               "They completed their hand first. Study the pond and try again."}
+            </p>
+            <Btn onClick={start}>Deal again</Btn>
+            <button onClick={onExit} style={{ width: "100%", marginTop: 10, minHeight: 48, fontWeight: 800, fontSize: 15.5, color: T.sub, background: "transparent", border: "none", cursor: "pointer" }}>Leave table</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------------- APP ---------------- */
 
 export default function SparrowSchool() {
@@ -2469,7 +2851,11 @@ export default function SparrowSchool() {
               <Home stars={stars} completed={completed} teacher={teacher}
                 onStart={(id) => { setActiveLesson(id); setScreen("lesson"); }}
                 onSettings={() => setScreen("settings")}
-                onLogo={() => setScreen("landing")} />
+                onLogo={() => setScreen("landing")}
+                onSim={() => setScreen("sim")} />
+            )}
+            {screen === "sim" && (
+              <Sim teacher={teacher} onExit={() => setScreen("home")} />
             )}
             {screen === "daily" && (
               <Daily teacher={teacher} stars={stars}
@@ -2494,7 +2880,7 @@ export default function SparrowSchool() {
                 addStars={(n) => setStars((s) => s + n)}
                 onComplete={finishLesson} />
             )}
-            {screen === "done" && <Complete stars={stars} lessonId={activeLesson} teacher={teacher} onHome={() => setScreen("home")} />}
+            {screen === "done" && <Complete stars={stars} lessonId={activeLesson} teacher={teacher} onHome={() => setScreen("home")} onSim={() => setScreen("sim")} />}
           </div>
 
           {["home", "daily", "profile"].includes(screen) && (
