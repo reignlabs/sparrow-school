@@ -506,6 +506,198 @@ function GapTile({ size = 64 }) {
   );
 }
 
+function TileBack({ size = 40 }) {
+  return (
+    <div style={{
+      width: size, height: size * 1.3, borderRadius: size * 0.16,
+      background: "linear-gradient(135deg,#3FA877,#2E8C60)", border: "1.5px solid #246E4B",
+      boxShadow: `0 ${Math.max(3, size * 0.07)}px 0 #1F6B49`,
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      <div style={{ width: "55%", height: "55%", borderRadius: 5, border: "1.5px solid rgba(255,255,255,.35)" }} />
+    </div>
+  );
+}
+
+/* ---------------- step visuals (fill teach screens) ---------------- */
+
+function FlowVisual() {
+  const T = useT();
+  const D5 = { s: "dots", n: 5 }, C2 = { s: "char", n: 2 }, B7 = { s: "bamboo", n: 7 }, W = { s: "wind", c: "北" };
+  const card = (label, sub, body, i) => (
+    <div className="ss-deal" style={{ animationDelay: `${i * 130}ms`, background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 16, padding: "12px 12px 10px", textAlign: "center", boxShadow: T.cardShadow, minWidth: 92 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 2, minHeight: 52, alignItems: "center" }}>{body}</div>
+      <div style={{ fontWeight: 800, fontSize: 14, color: T.ink, marginTop: 8, fontFamily: T.fontDisplay }}>{label}</div>
+      <div style={{ fontSize: 11, color: T.sub, marginTop: 1 }}>{sub}</div>
+    </div>
+  );
+  const arrow = (k) => <span key={k} style={{ color: T.primary, fontSize: 24, fontWeight: 800 }}>→</span>;
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+      {card("Draw", "from the wall", <TileBack size={32} />, 0)}
+      {arrow("a1")}
+      {card("Choose", "your worst tile", <><MiniTile t={C2} size={24} /><MiniTile t={B7} size={24} /><div style={{ boxShadow: `0 0 0 2.5px ${T.danger}`, borderRadius: 5 }}><MiniTile t={W} size={24} /></div></>, 1)}
+      {arrow("a2")}
+      {card("Discard", "to the pond", <MiniTile t={W} size={32} />, 2)}
+    </div>
+  );
+}
+
+function PondVisual({ tidy = false }) {
+  const T = useT();
+  const tiles = [{ s: "dots", n: 3 }, { s: "bamboo", n: 7 }, { s: "wind", c: "北" }, { s: "char", n: 1 }, { s: "dots", n: 9 }, { s: "dragon", d: "w" }, { s: "bamboo", n: 2 }, { s: "char", n: 5 }];
+  const rot = [-6, 4, -3, 7, -5, 2, -2, 5];
+  return (
+    <div style={{ background: "rgba(0,0,0,.05)", borderRadius: 16, padding: 14, maxWidth: 280, margin: "0 auto", display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
+      {tiles.map((t, i) => (
+        <div key={i} className="ss-deal" style={{ animationDelay: `${i * 55}ms`, transform: tidy ? "none" : `rotate(${rot[i]}deg)` }}>
+          <MiniTile t={t} size={34} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DealerVisual() {
+  const T = useT();
+  const seat = (x, y, lbl, active) => (
+    <g>
+      <circle cx={x} cy={y} r="15" fill={active ? T.primary : "#fff"} stroke={active ? T.primary : "#CBD3DA"} strokeWidth="2.5" />
+      <text x={x} y={y + 5} textAnchor="middle" fontSize="15" fontWeight="700" fill={active ? "#fff" : "#8A93A0"} fontFamily="'Noto Sans TC',sans-serif">{lbl}</text>
+    </g>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+      <svg viewBox="0 0 160 130" width="200" height="162">
+        <rect x="44" y="40" width="72" height="55" rx="10" fill="#1F7A55" stroke="#16603F" strokeWidth="2" />
+        {seat(80, 22, "北", false)}
+        {seat(138, 67, "西", false)}
+        {seat(80, 112, "東", true)}
+        {seat(22, 67, "南", false)}
+        <text x="80" y="72" textAnchor="middle" fontSize="13" fontWeight="800" fill="#EAFBF1" fontFamily="sans-serif">×2</text>
+      </svg>
+      <div style={{ fontSize: 12.5, fontWeight: 800, color: T.primary }}>東 East = dealer · plays for double</div>
+    </div>
+  );
+}
+
+function FireVisual() {
+  const T = useT();
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+      <div style={{ textAlign: "center" }}>
+        <MiniTile t={{ s: "bamboo", n: 9 }} size={40} />
+        <div style={{ fontSize: 11, color: T.sub, marginTop: 4, fontWeight: 700 }}>your discard</div>
+      </div>
+      <span className="ss-gappulse" style={{ color: T.danger, fontSize: 26, fontWeight: 800 }}>→</span>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 46, height: 46, borderRadius: "50%", background: T.dangerSoft, border: `2px solid ${T.danger}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, margin: "0 auto" }}>🀄</div>
+        <div style={{ fontSize: 11, color: T.danger, marginTop: 4, fontWeight: 800 }}>出銃 — you pay!</div>
+      </div>
+    </div>
+  );
+}
+
+function WallVisual() {
+  const T = useT();
+  const row = (n, horizontal) => (
+    <div style={{ display: "flex", flexDirection: horizontal ? "row" : "column", gap: 2 }}>
+      {Array.from({ length: n }).map((_, i) => <TileBack key={i} size={horizontal ? 16 : 16} />)}
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+      {row(7, true)}
+      <div style={{ display: "flex", gap: 30, alignItems: "center" }}>
+        {row(4, false)}
+        <span style={{ fontSize: 22 }}>🀄</span>
+        {row(4, false)}
+      </div>
+      {row(7, true)}
+      <div style={{ fontSize: 12, color: T.sub, fontWeight: 700, marginTop: 4 }}>Four walls, built into a square</div>
+    </div>
+  );
+}
+
+function DiceVisual() {
+  const T = useT();
+  const die = (pips) => (
+    <div style={{ width: 46, height: 46, borderRadius: 11, background: "#fff", border: `1.5px solid ${T.cardBorder}`, boxShadow: T.cardShadow, position: "relative", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gridTemplateRows: "1fr 1fr 1fr", padding: 7 }}>
+      {Array.from({ length: 9 }).map((_, i) => (
+        <span key={i} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {pips.includes(i) && <span style={{ width: 7, height: 7, borderRadius: "50%", background: i === 4 ? T.danger : T.ink }} />}
+        </span>
+      ))}
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+      <div className="ss-deal">{die([0, 2, 4, 6, 8])}</div>
+      <div className="ss-deal" style={{ animationDelay: "120ms" }}>{die([0, 2, 6, 8])}</div>
+      <span style={{ fontSize: 13, fontWeight: 800, color: T.sub, marginLeft: 6 }}>Roll to break the wall</span>
+    </div>
+  );
+}
+
+function StepVisual({ name }) {
+  if (name === "flow") return <FlowVisual />;
+  if (name === "pond") return <PondVisual />;
+  if (name === "dealer") return <DealerVisual />;
+  if (name === "fire") return <FireVisual />;
+  if (name === "wall") return <WallVisual />;
+  if (name === "dice") return <DiceVisual />;
+  if (name === "priority") return <PriorityVisual />;
+  if (name === "manners") return <MannersVisual />;
+  return null;
+}
+
+function PriorityVisual() {
+  const T = useT();
+  const rows = [
+    { cn: "食", en: "Win", note: "always eats first", rank: 1, color: T.star },
+    { cn: "碰", en: "Pung", note: "beats a chow", rank: 2, color: T.primary },
+    { cn: "上", en: "Chow", note: "lowest priority", rank: 3, color: T.sub },
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 9, maxWidth: 280, margin: "0 auto", width: "100%" }}>
+      {rows.map((r, i) => (
+        <React.Fragment key={r.cn}>
+          <div className="ss-deal" style={{ animationDelay: `${i * 120}ms`, display: "flex", alignItems: "center", gap: 12, background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 14, padding: "11px 14px", boxShadow: T.cardShadow }}>
+            <span style={{ width: 38, height: 38, borderRadius: 10, background: r.color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, fontFamily: "'Noto Sans TC',sans-serif", flexShrink: 0 }}>{r.cn}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 800, fontSize: 15.5, color: T.ink, fontFamily: T.fontDisplay }}>{r.en}</div>
+              <div style={{ fontSize: 12.5, color: T.sub }}>{r.note}</div>
+            </div>
+            <span style={{ fontWeight: 800, color: T.sub, fontSize: 13 }}>#{r.rank}</span>
+          </div>
+          {i < 2 && <div style={{ textAlign: "center", color: T.sub, fontWeight: 800, fontSize: 15 }}>beats ⌄</div>}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+function MannersVisual() {
+  const T = useT();
+  const items = [
+    ["✓", "Discard tidily into the pond", true],
+    ["✓", "Announce calls clearly — 碰! 食糊!", true],
+    ["✓", "Settle up promptly", true],
+    ["✕", "Reaching into others' tiles", false],
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 300, margin: "0 auto", width: "100%" }}>
+      {items.map((it, i) => (
+        <div key={i} className="ss-deal" style={{ animationDelay: `${i * 90}ms`, display: "flex", alignItems: "center", gap: 11, background: T.card, border: `1.5px solid ${it[2] ? T.cardBorder : T.danger + "55"}`, borderRadius: 13, padding: "11px 13px", boxShadow: T.cardShadow }}>
+          <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, background: it[2] ? T.successSoft : T.dangerSoft, color: it[2] ? T.successDeep : T.danger, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14 }}>{it[0]}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: it[2] ? T.ink : T.sub, textDecoration: it[2] ? "none" : "line-through" }}>{it[1]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
 /* ---------------- shared UI ---------------- */
 
 function Btn({ children, onClick, disabled, tone = "primary", style }) {
@@ -893,7 +1085,7 @@ const LESSON_CONTENT = {
     {
       type: "teach", title: "The rhythm of a turn",
       say: () => <>You live at <b>13 tiles</b>. On your turn: <b>draw</b> one (now 14), pick your least useful tile, <b>discard</b> it face-up (back to 13). Repeat around the table until someone wins. That's the entire engine.</>,
-      tiles: [], requireAll: false, note: "Draw → choose → discard. Always.",
+      tiles: [], requireAll: false, visual: "flow", note: "Draw → choose → discard. Always.",
     },
     {
       type: "pickOne", prompt: "You hold 13 tiles and it's your turn. After drawing, how many are in your hand?",
@@ -918,7 +1110,7 @@ const LESSON_CONTENT = {
     {
       type: "teach", title: "Your discards tell a story",
       say: () => <>Discards pile face-up in the middle — the <b>pond</b>. Sharp players read it like tea leaves: throw four Bamboo tiles in a row and everyone knows what you're <i>not</i> collecting.</>,
-      tiles: [], requireAll: false, note: "Mind what you feed the pond.",
+      tiles: [], requireAll: false, visual: "pond", note: "Mind what you feed the pond.",
     },
   ],
   6: [
@@ -948,7 +1140,7 @@ const LESSON_CONTENT = {
     {
       type: "teach", title: "Who wins the shouting match?",
       say: () => <>If two players call the same tile: <b>食 Win</b> beats <b>碰 Pung</b> beats <b>上 Sheung</b>. The win always eats first.</>,
-      tiles: [], requireAll: false, note: "食 > 碰 > 上",
+      tiles: [], requireAll: false, visual: "priority", note: "食 > 碰 > 上",
     },
     {
       type: "pickOne", prompt: "You're one 9 of Bamboo from winning. An opponent discards it. Your call?",
@@ -973,7 +1165,14 @@ const LESSON_CONTENT = {
     {
       type: "teach", title: "You know the whole loop",
       say: (t) => <>Tiles, sets, the winning shape, turns, calls — that's a <b>complete game</b> of Hong Kong mahjong. What's left is scoring (<b>fan 番</b>) and strategy — where the real fun, and your relatives' pocket money, lives. On to Unit 2.</>,
-      tiles: [], requireAll: false,
+      groups: [
+        { label: "Chow", tiles: [D(1), D(2), D(3)] },
+        { label: "Pung", tiles: [B(5), B(5), B(5)] },
+        { label: "Chow", tiles: [Ch(7), Ch(8), Ch(9)] },
+        { label: "Pung", tiles: [W("東"), W("東"), W("東")] },
+        { label: "Pair", tiles: [Dr("r"), Dr("r")] },
+      ],
+      requireAll: false, note: "A complete winning hand — and you can read every tile in it now.",
     },
   ],
   7: [
@@ -996,7 +1195,11 @@ const LESSON_CONTENT = {
     {
       type: "teach", title: "Where fan comes from",
       say: () => <>Common fan sources you'll learn this unit: <b>dragon pungs</b>, <b>your seat wind</b>, <b>all one suit</b>, <b>all pungs</b>, and <b>self-draw</b>. Each adds fan; stack several and a hand gets expensive — in your favour.</>,
-      tiles: [], requireAll: false, note: "Fan stacks. One big hand can be worth many small ones.",
+      groups: [
+        { label: "Dragon pung", tiles: [Dr("r"), Dr("r"), Dr("r")] },
+        { label: "Your seat wind", tiles: [W("南"), W("南"), W("南")] },
+        { label: "All one suit", tiles: [D(2), D(3), D(4)] },
+      ], requireAll: false, note: "Fan stacks. One big hand can be worth many small ones.",
     },
     {
       type: "pickOne", prompt: "Your table's minimum is 3 fan. Your hand is worth 1 fan. Can you declare a win?",
@@ -1088,7 +1291,7 @@ const LESSON_CONTENT = {
     {
       type: "teach", title: "The dealer's stakes",
       say: () => <>The <b>dealer (East)</b> plays for double — wins double, pays double. Win as dealer and you <b>stay dealer</b> and go again. The seat rotates only when the dealer loses the hand. High risk, high reward.</>,
-      tiles: [], requireAll: false, note: "Dealing is a hot seat — literally worth twice as much.",
+      tiles: [], requireAll: false, visual: "dealer", note: "Dealing is a hot seat — literally worth twice as much.",
     },
   ],
   10: [
@@ -1125,14 +1328,18 @@ const LESSON_CONTENT = {
     {
       type: "teach", title: "Lucky wins",
       say: () => <>A few wins carry their own fan just for <i>how</i> they happen: winning on the <b>very last tile</b>, winning on your <b>replacement draw</b> after a kong, or <b>robbing a kong</b> (winning on the tile someone adds to a pung). Rare, delightful, and bragged about for years.</>,
-      tiles: [], requireAll: false, note: "The game rewards drama. So will your family.",
+      groups: [
+        { label: "Last tile in the wall", tiles: [D(5)] },
+        { label: "After a kong", tiles: [B(3), B(3), B(3), B(3)] },
+        { label: "Robbing a kong", tiles: [Dr("g")] },
+      ], requireAll: false, note: "The game rewards drama. So will your family.",
     },
   ],
   11: [
     {
       type: "teach", title: "Defense saves more than offense",
       say: () => <>Here's the lesson that protects your wallet. If you discard the exact tile an opponent needs, <b>you alone pay</b> — that's <b>出銃 ceot cung</b> (“firing the gun”). When someone looks close to winning, stop pushing and play <b>safe</b>.</>,
-      tiles: [], requireAll: false, note: "A reckless discard can cost you the whole hand's payout.",
+      tiles: [], requireAll: false, visual: "fire", note: "A reckless discard can cost you the whole hand's payout.",
     },
     {
       type: "teach", title: "Read the pond",
@@ -1148,7 +1355,10 @@ const LESSON_CONTENT = {
     {
       type: "teach", title: "When to fold",
       say: () => <>If your hand is far from winning and someone's clearly close, <b>give up the hand</b> — discard only safe tiles and deny them. Losing a few points beats paying a big hand. Good players lose <i>small</i>.</>,
-      tiles: [], requireAll: false, note: "You can't win every hand. You can avoid paying for the worst ones.",
+      groups: [
+        { label: "Safe — already in the pond", tiles: [B(1)] },
+        { label: "Safe — a seen honor", tiles: [W("北")] },
+      ], requireAll: false, note: "You can't win every hand. You can avoid paying for the worst ones.",
     },
     {
       type: "pickOne", prompt: "Your hand is a mess and South is about to win. What's the right play?",
@@ -1160,12 +1370,12 @@ const LESSON_CONTENT = {
     {
       type: "teach", title: "Setting the table 開枱",
       say: () => <>Time for the real thing. Everyone <b>washes the tiles</b> face-down — that shuffling clatter is the “sparrow chatter” the game is named for — then each player <b>builds a wall</b> of stacked tiles in front of them.</>,
-      tiles: [], requireAll: false, note: "洗牌 (wash) → build four walls → you've made the square.",
+      tiles: [], requireAll: false, visual: "wall", note: "洗牌 (wash) → build four walls → you've made the square.",
     },
     {
       type: "teach", title: "Dice & the deal",
       say: () => <>The dealer <b>rolls dice</b> to pick where to break the wall — keeping it fair and unpredictable. Then tiles are dealt around until everyone holds <b>13</b> (the dealer takes the first turn with 14). Now you play the loop you already know.</>,
-      tiles: [], requireAll: false, note: "Dice decide the break point. 13 tiles each. Go.",
+      tiles: [], requireAll: false, visual: "dice", note: "Dice decide the break point. 13 tiles each. Go.",
     },
     {
       type: "pickOne", prompt: "How many tiles does each player hold to start (before drawing)?",
@@ -1175,7 +1385,7 @@ const LESSON_CONTENT = {
     {
       type: "teach", title: "Table manners",
       say: () => <>Etiquette keeps the peace: discard <b>tidily into the pond</b>, <b>announce your calls clearly</b> (碰! 食糊!), never reach into someone else's tiles, and <b>settle up promptly</b>. Slow, sloppy, or silent play is how you become the relative nobody invites.</>,
-      tiles: [], requireAll: false, note: "Clear calls, neat pond, quick payment. That's a welcome guest.",
+      tiles: [], requireAll: false, visual: "manners", note: "Clear calls, neat pond, quick payment. That's a welcome guest.",
     },
     {
       type: "teach", title: "You're table-ready 🎉",
@@ -1582,6 +1792,7 @@ function Lesson({ lessonId, teacher, onExit, onComplete, addStars }) {
             <TeacherSays teacher={teacher}>{step.say(teacher)}</TeacherSays>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 14, paddingTop: 10 }}>
               {step.groups && <GroupsDisplay groups={step.groups} labeled mini={44} />}
+              {step.visual && <StepVisual name={step.visual} />}
               {step.tiles && step.tiles.length > 0 && (
                 <div style={{ display: "flex", justifyContent: "center", gap: step.tiles.length === 4 ? 12 : 18, flexWrap: "wrap" }}>
                   {step.tiles.map((t, i) => (
