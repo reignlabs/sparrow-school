@@ -17,6 +17,15 @@ const W = (c) => ({ s: "wind", c });
 const Dr = (d) => ({ s: "dragon", d });
 const Fl = (c, col) => ({ s: "flower", c, col });
 
+/* ---- local memory (cookies/localStorage): remembers guests too ---- */
+const LS_KEY = "sparrowschool.v1";
+function lsLoad() {
+  try { const r = localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; }
+}
+function lsSave(d) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(d)); } catch (e) { /* private mode / sandbox */ }
+}
+
 /* ---------------- THEMES ---------------- */
 
 const THEMES = {
@@ -1499,7 +1508,7 @@ function StationDot({ done, active, color }) {
   );
 }
 
-function Home({ stars, completed, teacher, onStart, onSettings, onLogo, onSim }) {
+function Home({ stars, completed, teacher, onStart, onSettings, onLogo, onSim, onMemory, onWin }) {
   const T = useT();
   const A = teacher.Comp;
   return (
@@ -1625,12 +1634,30 @@ function Home({ stars, completed, teacher, onStart, onSettings, onLogo, onSim })
             <span style={{ color: "#D35400", fontSize: 21, fontWeight: 800 }}>›</span>
           </button>
         </div>
+
+        {/* Practice & Play hub */}
+        <div style={{ marginTop: 24 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 11 }}>Practice & Play</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
+            <button onClick={onMemory} className="ss-btn" style={{ textAlign: "left", background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: T.radius, padding: "14px 14px", minHeight: 92, boxShadow: T.btnEdge ? `0 4px 0 ${T.cardBorder}` : T.cardShadow, cursor: "pointer", fontFamily: T.fontBody, WebkitTapHighlightColor: "transparent" }}>
+              <div style={{ fontSize: 26 }}>🧠</div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: T.ink, marginTop: 7, fontFamily: T.fontDisplay }}>Memory Match</div>
+              <div style={{ fontSize: 12.5, color: T.sub, marginTop: 1 }}>Train tile recognition</div>
+            </button>
+            <button onClick={onWin} className="ss-btn" style={{ textAlign: "left", background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: T.radius, padding: "14px 14px", minHeight: 92, boxShadow: T.btnEdge ? `0 4px 0 ${T.cardBorder}` : T.cardShadow, cursor: "pointer", fontFamily: T.fontBody, WebkitTapHighlightColor: "transparent" }}>
+              <div style={{ fontSize: 26 }}>🏆</div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: T.ink, marginTop: 7, fontFamily: T.fontDisplay }}>How to Win</div>
+              <div style={{ fontSize: 12.5, color: T.sub, marginTop: 1 }}>Sets, eyes & scoring</div>
+            </button>
+          </div>
+          <div style={{ fontSize: 12, color: T.sub, textAlign: "center", marginTop: 12, lineHeight: 1.5 }}>
+            Tip: tap any finished lesson to replay and practice it again.
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
-/* ---------------- LESSON ---------------- */
 
 function SetRowOption({ tiles, state, onTap }) {
   const T = useT();
@@ -2091,7 +2118,7 @@ function NeonChar({ ch, color, delay = 0 }) {
   );
 }
 
-function Landing({ onStart, teacher }) {
+function Landing({ onStart, teacher, returning, completedCount }) {
   const T = useT();
   const A = teacher.Comp;
   const steps = [
@@ -2179,12 +2206,17 @@ function Landing({ onStart, teacher }) {
         {/* mascot + CTA */}
         <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 24px 0", gap: 16 }}>
           <div className="ss-hero-mascot" style={{ filter: "drop-shadow(0 8px 24px rgba(255,77,141,.35))" }}><A size={104} /></div>
+          {returning && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.22)", borderRadius: 999, padding: "7px 15px", color: "#fff", fontWeight: 800, fontSize: 13.5, backdropFilter: "blur(8px)" }}>
+              👋 Welcome back · {completedCount} lesson{completedCount === 1 ? "" : "s"} done
+            </div>
+          )}
           <button onClick={onStart} className="ss-btn ss-hero-cta"
             style={{ width: "min(330px,100%)", minHeight: 60, fontSize: 18.5, fontWeight: 800, fontFamily: T.fontBody, color: "#fff", background: "#FF4D8D", border: "none", borderRadius: 18, boxShadow: "0 6px 24px rgba(255,77,141,.5), 0 4px 0 #C9296A", cursor: "pointer", letterSpacing: ".01em", WebkitTapHighlightColor: "transparent" }}>
-            Start learning — it's free
+            {returning ? "Continue learning →" : "Start learning — it's free"}
           </button>
           <div className="ss-hero-meta" style={{ color: "#B9AEC9", fontSize: 13, display: "flex", alignItems: "center", gap: 7 }}>
-            <span>★ No ads</span><span>·</span><span>5 min a day</span><span>·</span><span>No sign-up needed</span>
+            <span>★ No ads</span><span>·</span><span>5 min a day</span><span>·</span><span>{returning ? "Your progress is saved" : "No sign-up needed"}</span>
           </div>
         </div>
         </div>{/* /hero-inner */}
@@ -2625,6 +2657,7 @@ function Sim({ teacher, onExit }) {
   const T = useT();
   const [g, setG] = useState(null);
   const [tips, setTips] = useState(true);
+  const [coach, setCoach] = useState(() => !lsLoad()?.simSeen);
   const timer = useRef(null);
 
   // ---- init ----
@@ -2848,6 +2881,31 @@ function Sim({ teacher, onExit }) {
         </div>
       )}
 
+      {/* first-time coach */}
+      {coach && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 70, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(20,14,26,.6)", backdropFilter: "blur(4px)", padding: 24 }}>
+          <div style={{ width: "min(400px,100%)", background: T.surface, borderRadius: 24, padding: "26px 22px", textAlign: "left", boxShadow: "0 24px 60px rgba(0,0,0,.4)" }}>
+            <div style={{ textAlign: "center", fontSize: 40 }}>🀄</div>
+            <h2 style={{ fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 21, color: T.ink, margin: "8px 0 14px", textAlign: "center" }}>How a hand works</h2>
+            {[
+              ["1", "Your turn", "You're dealt a tile automatically — then tap one in your hand to discard it."],
+              ["2", "Claim discards", "When a bot throws a tile you can use, 碰 Pung / 上 Chow / 食糊 buttons pop up. Grab it or Pass."],
+              ["3", "Meld & win", "Claimed tiles form a set in front of you. Complete 4 sets + a pair (the eyes) and declare 食糊!"],
+              ["⚠", "Defend", "Bots can win off your discards. When someone looks close, throw safe tiles."],
+            ].map((r, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "flex-start" }}>
+                <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, background: i === 3 ? T.dangerSoft : T.primarySoft || T.successSoft, color: i === 3 ? T.danger : T.primary, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13 }}>{r[0]}</span>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 14.5, color: T.ink, fontFamily: T.fontDisplay }}>{r[1]}</div>
+                  <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.45, marginTop: 1 }}>{r[2]}</div>
+                </div>
+              </div>
+            ))}
+            <Btn onClick={() => { setCoach(false); lsSave({ ...(lsLoad() || {}), simSeen: true }); }}>Got it — let's play</Btn>
+          </div>
+        </div>
+      )}
+
       {/* game over */}
       {g.phase === "over" && (
         <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(20,14,26,.6)", backdropFilter: "blur(4px)", padding: 24 }}>
@@ -2872,20 +2930,189 @@ function Sim({ teacher, onExit }) {
   );
 }
 
+/* ---------------- PRACTICE: Memory Match ---------------- */
+
+function MemoryGame({ teacher, onExit }) {
+  const T = useT();
+  const pool = useMemo(() => [
+    { s: "dots", n: 5 }, { s: "bamboo", n: 3 }, { s: "char", n: 7 },
+    { s: "wind", c: "東" }, { s: "wind", c: "北" },
+    { s: "dragon", d: "r" }, { s: "dragon", d: "g" },
+    { s: "flower", c: "春", col: SUIT.green },
+  ], []);
+  const keyOf = (t) => t.s === "dots" ? "o" + t.n : t.s === "bamboo" ? "b" + t.n : t.s === "char" ? "k" + t.n : t.s === "wind" ? "w" + t.c : t.s === "dragon" ? "z" + t.d : "f" + t.c;
+
+  const deal = () => {
+    const cards = [];
+    pool.forEach((t, i) => { cards.push({ id: i + "a", k: keyOf(t), t }); cards.push({ id: i + "b", k: keyOf(t), t }); });
+    for (let i = cards.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cards[i], cards[j]] = [cards[j], cards[i]]; }
+    return cards;
+  };
+  const [cards, setCards] = useState(deal);
+  const [flipped, setFlipped] = useState([]);    // indices currently face up (max 2)
+  const [matched, setMatched] = useState([]);     // matched card ids
+  const [moves, setMoves] = useState(0);
+  const [locked, setLocked] = useState(false);
+  const won = matched.length === cards.length;
+
+  const restart = () => { setCards(deal()); setFlipped([]); setMatched([]); setMoves(0); setLocked(false); };
+
+  const tap = (i) => {
+    if (locked || flipped.includes(i) || matched.includes(cards[i].id)) return;
+    clack();
+    const f = [...flipped, i];
+    setFlipped(f);
+    if (f.length === 2) {
+      setMoves((m) => m + 1);
+      const [a, b] = f;
+      if (cards[a].k === cards[b].k) {
+        setMatched((m) => [...m, cards[a].id, cards[b].id]);
+        setFlipped([]);
+      } else {
+        setLocked(true);
+        setTimeout(() => { setFlipped([]); setLocked(false); }, 850);
+      }
+    }
+  };
+
+  return (
+    <div style={{ padding: "0 18px 30px", minHeight: "min(100dvh,820px)", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0 8px" }}>
+        <button onClick={onExit} aria-label="Back" style={{ background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 13, width: 46, height: 46, fontSize: 18, color: T.sub, cursor: "pointer", boxShadow: T.chipShadow }}>‹</button>
+        <h2 style={{ fontFamily: T.fontDisplay, fontSize: 22, fontWeight: 800, color: T.ink, margin: 0, flex: 1 }}>Memory Match</h2>
+        <div style={{ fontSize: 13.5, fontWeight: 800, color: T.sub, background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 999, padding: "7px 13px", boxShadow: T.chipShadow }}>{matched.length / 2}/{pool.length}</div>
+      </div>
+      <p style={{ fontSize: 14, color: T.sub, margin: "0 0 14px", lineHeight: 1.5 }}>Flip two tiles to find matching pairs — and drill your tile recognition across suits, honors, and flowers. Fewer moves is better.</p>
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, maxWidth: 320, margin: "0 auto", width: "100%" }}>
+          {cards.map((c, i) => {
+            const faceUp = flipped.includes(i) || matched.includes(c.id);
+            const isMatched = matched.includes(c.id);
+            return (
+              <button key={c.id} onClick={() => tap(i)}
+                style={{ aspectRatio: "0.78", border: "none", background: "none", padding: 0, cursor: "pointer", WebkitTapHighlightColor: "transparent", opacity: isMatched ? 0.55 : 1, transition: "opacity .3s ease" }}>
+                <div className={faceUp ? "ss-pop" : ""} style={{ width: "100%", height: "100%" }}>
+                  {faceUp
+                    ? <div style={{ width: "100%", height: "100%", background: TILE.face, border: `1.5px solid ${isMatched ? T.success : TILE.edge}`, borderRadius: 11, boxShadow: `0 4px 0 ${TILE.shadow}${isMatched ? `, 0 0 0 2.5px ${T.success}` : ""}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <svg viewBox="0 0 60 80" width="74%" height="74%"><TileFace t={c.t} /></svg>
+                      </div>
+                    : <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#3FA877,#2E8C60)", border: "1.5px solid #246E4B", borderRadius: 11, boxShadow: "0 4px 0 #1F6B49", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{ width: "52%", height: "52%", borderRadius: 6, border: "1.5px solid rgba(255,255,255,.35)" }} />
+                      </div>}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 16, fontSize: 14, fontWeight: 800, color: T.sub }}>Moves: {moves}</div>
+      </div>
+
+      {won && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(20,14,26,.55)", backdropFilter: "blur(4px)", padding: 24 }}>
+          <Confetti />
+          <div style={{ position: "relative", width: "min(380px,100%)", background: T.surface, borderRadius: 24, padding: "28px 24px", textAlign: "center", boxShadow: "0 24px 60px rgba(0,0,0,.4)" }}>
+            <div style={{ fontSize: 46 }}>🧠</div>
+            <h2 style={{ fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 23, color: T.ink, margin: "8px 0 6px" }}>All matched!</h2>
+            <p style={{ fontSize: 14.5, color: T.sub, margin: "0 0 18px" }}>Cleared in <b style={{ color: T.ink }}>{moves}</b> moves. Sharp eyes — that's the tile-recognition that keeps you fast at a real table.</p>
+            <Btn onClick={restart}>Play again</Btn>
+            <button onClick={onExit} style={{ width: "100%", marginTop: 10, minHeight: 46, fontWeight: 800, fontSize: 15, color: T.sub, background: "transparent", border: "none", cursor: "pointer" }}>Done</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- PRACTICE: How to Win (anatomy + eyes + scoring) ---------------- */
+
+function WinAnatomy({ teacher, onExit }) {
+  const T = useT();
+  const sets = [
+    { kind: "Chow", cn: "上", tiles: [D(2), D(3), D(4)], note: "Three in a row, same suit.", fan: null },
+    { kind: "Pung", cn: "碰", tiles: [Dr("r"), Dr("r"), Dr("r")], note: "A dragon triplet — scores fan!", fan: "Red dragon +1番" },
+    { kind: "Chow", cn: "上", tiles: [B(6), B(7), B(8)], note: "Another run, in Bamboo.", fan: null },
+    { kind: "Pung", cn: "碰", tiles: [W("南"), W("南"), W("南")], note: "Your seat wind (South) — scores!", fan: "Seat wind +1番" },
+    { kind: "Eyes", cn: "眼", tiles: [Ch(5), Ch(5)], note: "The pair — called the “eyes” 眼 (ngaan). Every hand needs exactly one.", fan: null },
+  ];
+  const [open, setOpen] = useState(null);
+  const [declared, setDeclared] = useState(false);
+
+  return (
+    <div style={{ padding: "0 18px 30px", minHeight: "min(100dvh,820px)", display: "flex", flexDirection: "column", position: "relative" }}>
+      {declared && <Confetti />}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0 8px" }}>
+        <button onClick={onExit} aria-label="Back" style={{ background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 13, width: 46, height: 46, fontSize: 18, color: T.sub, cursor: "pointer", boxShadow: T.chipShadow }}>‹</button>
+        <h2 style={{ fontFamily: T.fontDisplay, fontSize: 22, fontWeight: 800, color: T.ink, margin: 0 }}>Anatomy of a Win</h2>
+      </div>
+      <p style={{ fontSize: 14.5, color: T.sub, margin: "0 0 14px", lineHeight: 1.5 }}>
+        A winning hand is always <b>4 sets + the eyes</b> (a pair) = 14 tiles. Tap each piece to see what it is — then declare 食糊.
+      </p>
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 9, justifyContent: "center" }}>
+        {sets.map((s, i) => {
+          const isOpen = open === i;
+          const isEyes = s.kind === "Eyes";
+          return (
+            <button key={i} onClick={() => { clack(); setOpen(isOpen ? null : i); }}
+              style={{ textAlign: "left", background: T.card, border: `1.5px solid ${isOpen ? (isEyes ? T.star : T.primary) : T.cardBorder}`, borderRadius: 16, padding: "11px 13px", boxShadow: isOpen ? `0 0 0 2px ${isEyes ? T.star : T.primary}, ${T.cardShadow}` : T.cardShadow, cursor: "pointer", WebkitTapHighlightColor: "transparent", transition: "box-shadow .15s ease, border-color .15s ease" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", gap: 2 }}>{s.tiles.map((t, j) => <MiniTile key={j} t={t} size={38} />)}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 800, fontSize: 15.5, color: T.ink, fontFamily: T.fontDisplay }}>
+                    {s.kind} <span style={{ fontFamily: "'Noto Sans TC',sans-serif", color: isEyes ? T.starText : T.primary }}>{s.cn}</span>
+                  </div>
+                  {s.fan && <div style={{ fontSize: 12, fontWeight: 800, color: T.successDeep }}>{s.fan}</div>}
+                </div>
+                <span style={{ color: T.sub, fontSize: 18, transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .2s" }}>›</span>
+              </div>
+              {isOpen && <div style={{ fontSize: 13.5, color: T.sub, marginTop: 9, lineHeight: 1.5, paddingLeft: 2 }}>{s.note}</div>}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        {!declared ? (
+          <Btn onClick={() => { setDeclared(true); }} tone="success">🀄 Declare 食糊!</Btn>
+        ) : (
+          <div className="ss-sheet" style={{ background: T.successSoft, border: `1.5px solid ${T.success}55`, borderRadius: 16, padding: "14px 16px" }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: T.successDeep, fontFamily: T.fontDisplay, marginBottom: 8 }}>食糊! You declared a win 🎉</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 13.5, color: T.ink }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span>Red dragon pung</span><b>+1 番</b></div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span>Seat wind (South) pung</span><b>+1 番</b></div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span>Winning the hand</span><b>+1 番</b></div>
+              <div style={{ display: "flex", justifyContent: "space-between", borderTop: `1px solid ${T.success}44`, paddingTop: 5, marginTop: 2, fontWeight: 800, color: T.successDeep }}><span>Total</span><span>3 番 — meets the minimum ✓</span></div>
+            </div>
+            <p style={{ fontSize: 12.5, color: T.sub, marginTop: 8, lineHeight: 1.45 }}>Lay your hand face-up, count your fan, collect. That's a complete Hong Kong win.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- APP ---------------- */
 
 export default function SparrowSchool() {
+  const boot0 = useRef(lsLoad());
   const [screen, setScreen] = useState("landing");
   const [activeLesson, setActiveLesson] = useState(1);
-  const [stars, setStars] = useState(0);
-  const [completed, setCompleted] = useState([]);
-  const [themeId, setThemeId] = useState("duo");
-  const [teacherId, setTeacherId] = useState("mai");
+  const [stars, setStars] = useState(boot0.current?.stars || 0);
+  const [completed, setCompleted] = useState(boot0.current?.completed || []);
+  const [themeId, setThemeId] = useState(boot0.current?.themeId || "duo");
+  const [teacherId, setTeacherId] = useState(boot0.current?.teacherId || "mai");
   const [user, setUser] = useState(null);
   const [booting, setBooting] = useState(!!supabase);
   const [showNudge, setShowNudge] = useState(false);
   const [nudged, setNudged] = useState(false);
   const hydrated = useRef(false);
+  const returning = (boot0.current?.completed?.length || 0) > 0;
+
+  // persist to local memory on every change (works for guests, no backend needed)
+  useEffect(() => {
+    lsSave({ stars, completed, themeId, teacherId, visited: Date.now() });
+  }, [stars, completed, themeId, teacherId]);
 
   const T = THEMES[themeId];
   const teacher = TEACHERS.find((t) => t.id === teacherId);
@@ -2914,8 +3141,8 @@ export default function SparrowSchool() {
           const { data } = await supabase
             .from("progress").select("*").eq("user_id", u.id).maybeSingle();
           if (data) {
-            setStars(data.stars || 0);
-            setCompleted(Array.isArray(data.completed) ? data.completed : []);
+            setStars((s) => Math.max(s, data.stars || 0));
+            setCompleted((c) => Array.from(new Set([...c, ...(Array.isArray(data.completed) ? data.completed : [])])).sort((a, b) => a - b));
           }
         }
       } catch (e) {
@@ -3056,17 +3283,25 @@ export default function SparrowSchool() {
         <div className={`ss-app ${screen === "landing" ? "ss-fullbleed" : ""}`}>
           <div className="ss-app-body">
             {screen === "landing" && (
-              <Landing teacher={teacher} onStart={() => setScreen("home")} />
+              <Landing teacher={teacher} returning={returning} completedCount={completed.length} onStart={() => setScreen("home")} />
             )}
             {screen === "home" && (
               <Home stars={stars} completed={completed} teacher={teacher}
                 onStart={(id) => { setActiveLesson(id); setScreen("lesson"); }}
                 onSettings={() => setScreen("settings")}
                 onLogo={() => setScreen("landing")}
-                onSim={() => setScreen("sim")} />
+                onSim={() => setScreen("sim")}
+                onMemory={() => setScreen("memory")}
+                onWin={() => setScreen("winanatomy")} />
             )}
             {screen === "sim" && (
               <Sim teacher={teacher} onExit={() => setScreen("home")} />
+            )}
+            {screen === "memory" && (
+              <MemoryGame teacher={teacher} onExit={() => setScreen("home")} />
+            )}
+            {screen === "winanatomy" && (
+              <WinAnatomy teacher={teacher} onExit={() => setScreen("home")} />
             )}
             {screen === "daily" && (
               <Daily teacher={teacher} stars={stars}
