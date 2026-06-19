@@ -1508,7 +1508,7 @@ function StationDot({ done, active, color }) {
   );
 }
 
-function Home({ stars, completed, teacher, onStart, onSettings, onLogo, onSim, onMemory, onWin }) {
+function Home({ stars, completed, teacher, onStart, onSettings, onLogo, onSim, onMemory, onWin, onPractice }) {
   const T = useT();
   const A = teacher.Comp;
   return (
@@ -1650,6 +1650,14 @@ function Home({ stars, completed, teacher, onStart, onSettings, onLogo, onSim, o
               <div style={{ fontSize: 12.5, color: T.sub, marginTop: 1 }}>Sets, eyes & scoring</div>
             </button>
           </div>
+          <button onClick={onPractice} className="ss-btn ss-glow" style={{ display: "flex", alignItems: "center", gap: 13, textAlign: "left", width: "100%", marginTop: 11, background: T.primarySoft || T.successSoft, border: `1.5px solid ${T.primary}`, borderRadius: T.radius, padding: "15px 16px", minHeight: 74, boxShadow: T.btnEdge ? `0 4px 0 ${T.primaryDeep}55` : T.cardShadow, cursor: "pointer", fontFamily: T.fontBody, WebkitTapHighlightColor: "transparent" }}>
+            <div style={{ width: 46, height: 46, borderRadius: 13, flexShrink: 0, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>♾️</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 800, fontSize: 16, color: T.ink, fontFamily: T.fontDisplay }}>Endless Practice</div>
+              <div style={{ fontSize: 13, color: T.sub, marginTop: 1 }}>Freshly-generated drills — never the same twice</div>
+            </div>
+            <span style={{ color: T.primary, fontSize: 21, fontWeight: 800 }}>›</span>
+          </button>
           <div style={{ fontSize: 12, color: T.sub, textAlign: "center", marginTop: 12, lineHeight: 1.5 }}>
             Tip: tap any finished lesson to replay and practice it again.
           </div>
@@ -1721,9 +1729,9 @@ function ChoiceStack({ choices, choice, wrong, onPick }) {
   );
 }
 
-function Lesson({ lessonId, teacher, onExit, onComplete, addStars }) {
+function Lesson({ lessonId, teacher, onExit, onComplete, addStars, customSteps }) {
   const T = useT();
-  const STEPS = LESSON_CONTENT[lessonId];
+  const STEPS = customSteps || LESSON_CONTENT[lessonId];
   const [idx, setIdx] = useState(0);
   const [tapped, setTapped] = useState([]);
   const [picked, setPicked] = useState([]);
@@ -3092,6 +3100,248 @@ function WinAnatomy({ teacher, onExit }) {
   );
 }
 
+/* ================= ENDLESS PRACTICE: drill generators ================= */
+/* Each generator returns a fresh, randomized drill compatible with the
+   existing Lesson renderers — so replays are never identical. Win-hand
+   generation reuses the validated sim engine (simKey / simIsWin). */
+
+const SUITS3 = ["dots", "bamboo", "char"];
+const SUIT_NAME = { dots: "Dots", bamboo: "Bamboo", char: "Characters" };
+const HONOR_POOL = [W("東"), W("南"), W("西"), W("北"), Dr("r"), Dr("g"), Dr("w")];
+const ri = (n) => Math.floor(Math.random() * n);
+const pickOne = (a) => a[ri(a.length)];
+const shuf = (a) => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = ri(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const randSuitTile = () => ({ s: pickOne(SUITS3), n: 1 + ri(9) });
+const randTile = () => (Math.random() < 0.76 ? randSuitTile() : pickOne(HONOR_POOL));
+const sameT = (a, b) => simKey(a) === simKey(b);
+const diffTile = (t, ex = []) => { let x, g = 0; do { x = randTile(); g++; } while ((sameT(x, t) || ex.some((e) => sameT(x, e))) && g < 60); return x; };
+const honorName = (t) => t.s === "wind" ? ({ "東": "East wind", "南": "South wind", "西": "West wind", "北": "North wind" })[t.c] : ({ r: "Red dragon", g: "Green dragon", w: "White dragon" })[t.d];
+const suitHint = (s) => s === "dots" ? "circles" : s === "bamboo" ? "sticks (and the bird at 1)" : "萬 characters";
+
+function genIdSuit() {
+  const target = pickOne(SUITS3);
+  const correctTile = { s: target, n: 1 + ri(9) };
+  const others = shuf(SUITS3.filter((s) => s !== target)).slice(0, 2).map((s) => ({ s, n: 1 + ri(9) }));
+  const tiles = shuf([correctTile, ...others]);
+  return { type: "pickOne", prompt: `Tap a ${SUIT_NAME[target]} tile`, tiles, correct: tiles.indexOf(correctTile), hint: `${SUIT_NAME[target]} = ${suitHint(target)}.` };
+}
+function genFindSuit() {
+  const target = pickOne(SUITS3);
+  const k = 2 + ri(2);
+  const targets = Array.from({ length: k }, () => ({ s: target, n: 1 + ri(9) }));
+  const others = [];
+  while (targets.length + others.length < 6) { const t = randTile(); if (t.s !== target) others.push(t); }
+  const tiles = shuf([...targets, ...others]);
+  const correct = tiles.map((t, i) => (t.s === target ? i : -1)).filter((i) => i >= 0);
+  return { type: "pickMany", prompt: `Tap all the ${SUIT_NAME[target]} tiles`, tiles, correct, hint: `${SUIT_NAME[target]} show ${suitHint(target)}.` };
+}
+function genReadNumber() {
+  const s = pickOne(SUITS3), n = 1 + ri(9);
+  const opts = shuf([n, ...shuf([1, 2, 3, 4, 5, 6, 7, 8, 9].filter((x) => x !== n)).slice(0, 2)]);
+  return { type: "pickOne", big: true, tiles: [{ s, n }], choices: opts.map(String), correct: opts.indexOf(n), prompt: `What number is this ${SUIT_NAME[s]} tile?`, hint: s === "char" ? "Read the character on top." : "Count the marks." };
+}
+function genHonorId() {
+  const target = pickOne(HONOR_POOL);
+  const nm = honorName(target);
+  const others = shuf(HONOR_POOL.filter((h) => honorName(h) !== nm)).slice(0, 2);
+  const tiles = shuf([target, ...others]);
+  return { type: "pickOne", prompt: `Which tile is the ${nm}?`, tiles, correct: tiles.indexOf(target), hint: `Look for ${target.s === "wind" ? target.c : target.d === "r" ? "中" : target.d === "g" ? "發" : "the blank frame"}.` };
+}
+function genIsHonor() {
+  const k = 2 + ri(2);
+  const honors = shuf(HONOR_POOL).slice(0, k);
+  const rest = [];
+  while (honors.length + rest.length < 6) rest.push(randSuitTile());
+  const tiles = shuf([...honors, ...rest]);
+  const correct = tiles.map((t, i) => (t.s === "wind" || t.s === "dragon" ? i : -1)).filter((i) => i >= 0);
+  return { type: "pickMany", prompt: "Tap all the honor tiles", tiles, correct, hint: "Honors = winds & dragons (no numbers)." };
+}
+function genCompletePung() {
+  const t = randTile();
+  const w1 = diffTile(t), w2 = diffTile(t, [w1]);
+  const opts = shuf([t, w1, w2]);
+  return { type: "pickOne", prompt: "Complete the Pung", context: [t, t, "gap"], tiles: opts, correct: opts.indexOf(t), hint: "A pung is three identical tiles — same suit, same number." };
+}
+function genCompleteChow() {
+  const s = pickOne(SUITS3), n = 1 + ri(7);
+  const run = [{ s, n }, { s, n: n + 1 }, { s, n: n + 2 }];
+  const miss = ri(3);
+  const ans = run[miss];
+  const context = run.map((t, i) => (i === miss ? "gap" : t));
+  let alt = ans.n + (Math.random() < 0.5 ? 1 : -1); if (alt < 1) alt = ans.n + 2; if (alt > 9) alt = ans.n - 2;
+  const w1 = { s, n: alt };
+  const w2 = { s: pickOne(SUITS3.filter((x) => x !== s)), n: ans.n };
+  const opts = shuf([ans, w1, w2]);
+  return { type: "pickOne", prompt: "Fill the gap in this Chow", context, tiles: opts, correct: opts.indexOf(ans), hint: "Same suit, consecutive numbers." };
+}
+function genPickSet() {
+  const want = pickOne(["Pung", "Chow", "Pair"]);
+  const mk = {
+    Pung: () => { const t = randTile(); return [t, t, t]; },
+    Chow: () => { const s = pickOne(SUITS3), n = 1 + ri(7); return [{ s, n }, { s, n: n + 1 }, { s, n: n + 2 }]; },
+    Pair: () => { const t = randTile(); return [t, t]; },
+  };
+  const others = ["Pung", "Chow", "Pair"].filter((x) => x !== want);
+  const options = shuf([{ tiles: mk[want]() }, { tiles: mk[others[0]]() }, { tiles: mk[others[1]]() }]);
+  const correct = options.findIndex((o) => o.tiles === options.find((x) => x.tiles.length === (want === "Pair" ? 2 : 3) && (want !== "Chow" ? simKey(x.tiles[0]) === simKey(x.tiles[1]) : simKey(x.tiles[0]) !== simKey(x.tiles[1]))).tiles);
+  // robust correct: the option whose shape matches `want`
+  const isPung = (ts) => ts.length === 3 && ts.every((t) => simKey(t) === simKey(ts[0]));
+  const isPair = (ts) => ts.length === 2 && simKey(ts[0]) === simKey(ts[1]);
+  const isChow = (ts) => ts.length === 3 && !isPung(ts);
+  const matcher = want === "Pung" ? isPung : want === "Pair" ? isPair : isChow;
+  const ci = options.findIndex((o) => matcher(o.tiles));
+  return { type: "pickSet", prompt: `Tap the ${want}`, options, correct: ci, hint: want === "Pung" ? "Three identical tiles." : want === "Chow" ? "Three consecutive, same suit." : "Two identical tiles." };
+}
+function genDiscard() {
+  const s = pickOne(SUITS3), n = 2 + ri(5);
+  const pt = randSuitTile();
+  const chow = [{ s, n }, { s, n: n + 1 }];
+  const pair = [pt, pt];
+  const lone = pickOne(HONOR_POOL);
+  const tiles = shuf([...chow, ...pair, lone]);
+  return { type: "pickOne", prompt: "Tap the best tile to discard", tiles, correct: tiles.indexOf(lone), hint: "The lone tile with no pair and no neighbours is worth the least — throw it." };
+}
+function genSpeedCall() {
+  const t = randTile();
+  return { type: "speed", prompt: "Lightning round!", say: () => <>An opponent discards this — and you're holding <b>two</b> of them. React before the timer runs out.</>, tile: t, seconds: 4, choices: ["碰 Pung!", "上 Chow", "Pass"], correct: 0, hint: "You hold the pair — Pung, fast!" };
+}
+function genWinGroups() {
+  for (let a = 0; a < 60; a++) {
+    const counts = {}; const groups = [];
+    const tryAdd = (tiles) => {
+      const tmp = { ...counts };
+      for (const t of tiles) { const k = simKey(t); tmp[k] = (tmp[k] || 0) + 1; if (tmp[k] > 4) return false; }
+      Object.assign(counts, tmp); groups.push(tiles); return true;
+    };
+    let ok = true;
+    for (let i = 0; i < 4; i++) {
+      let placed = false;
+      for (let tr = 0; tr < 25 && !placed; tr++) {
+        if (Math.random() < 0.5) { const t = randTile(); placed = tryAdd([t, t, t]); }
+        else { const s = pickOne(SUITS3), n = 1 + ri(7); placed = tryAdd([{ s, n }, { s, n: n + 1 }, { s, n: n + 2 }]); }
+      }
+      if (!placed) { ok = false; break; }
+    }
+    if (!ok) continue;
+    let paired = false;
+    for (let tr = 0; tr < 25 && !paired; tr++) { const t = randTile(); paired = tryAdd([t, t]); }
+    if (!paired) continue;
+    if (simIsWin(groups.flat().map(simKey), 0)) return groups;
+  }
+  return [[D(1), D(2), D(3)], [B(5), B(5), B(5)], [Ch(7), Ch(8), Ch(9)], [W("東"), W("東"), W("東")], [Dr("r"), Dr("r")]];
+}
+function breakHand(groups) {
+  for (let a = 0; a < 30; a++) {
+    const gi = ri(groups.length), g = [...groups[gi]], ti = ri(g.length), repl = diffTile(g[ti]);
+    const ng = groups.map((x, i) => (i === gi ? g.map((t, j) => (j === ti ? repl : t)) : x));
+    if (!simIsWin(ng.flat().map(simKey), 0)) return ng;
+  }
+  const ng = groups.map((x) => [...x]); ng[ng.length - 1][0] = diffTile(ng[ng.length - 1][1]); return ng;
+}
+function genJudgeWin() {
+  const win = Math.random() < 0.5;
+  let groups = genWinGroups();
+  if (!win) groups = breakHand(groups);
+  return { type: "judge", prompt: "Is this a winning hand?", groups: groups.map((g) => ({ tiles: g })), choices: ["食糊 — it's a win!", "Not yet"], correct: win ? 0 : 1, hint: win ? "4 sets + a pair (the eyes 眼). That's a win." : "A set or the pair is incomplete — count again." };
+}
+
+// rotating facts — each teaches something new about an elementary aspect
+const FACTS = [
+  { title: "The bird tile", tiles: [B(1)], cap: ["1 of Bamboo"], body: <>The <b>1 of Bamboo</b> shows a bird, not a stick — and the game itself is named after it. <b>麻雀</b> means “sparrow.”</> },
+  { title: "Why 萬?", tiles: [Ch(5)], cap: ["5 of Characters"], body: <>The red <b>萬</b> on every Character tile means <b>ten-thousand</b>. The suit is literally the “ten-thousands.”</> },
+  { title: "Green = get rich", tiles: [Dr("g")], cap: ["Green dragon"], body: <>The green dragon is <b>發 (faat)</b> — “to prosper / strike it rich.” No surprise gamblers chase it.</> },
+  { title: "The shy dragon", tiles: [Dr("w")], cap: ["White dragon"], body: <>The <b>white dragon</b> is a blank (or a plain 白 frame) — the tile that “forgot to get dressed.”</> },
+  { title: "Coins & strings", tiles: [D(1), B(9)], cap: ["Dots", "Bamboo"], body: <>The suits come from old money: <b>Dots</b> are coins, <b>Bamboo</b> are strings of coins, <b>Characters</b> are ten-thousands of them.</> },
+  { title: "Winds are seats", tiles: [W("東")], cap: ["East"], body: <>Each wind is a <b>seat</b>: 東 South 西 North, going counter-clockwise. <b>East is the dealer</b> — and plays for double.</> },
+  { title: "The eyes 眼", tiles: [Ch(3), Ch(3)], cap: ["A pair"], body: <>Every winning hand needs exactly one pair — the Cantonese call it the <b>“eyes” 眼 (ngaan)</b>. Four sets, and the eyes.</> },
+  { title: "144 in a set", tiles: [Fl("春", SUIT.green)], cap: ["Spring (a flower)"], body: <>A full set is <b>144</b> tiles: 108 suits, 16 winds, 12 dragons, and <b>8 flowers</b> — the free bonus tiles.</> },
+];
+function genFact() {
+  const f = pickOne(FACTS);
+  return { type: "teach", title: f.title, say: () => f.body, tiles: f.tiles, captions: f.cap, requireAll: false, note: "💡 Did you know?" };
+}
+
+const GEN_POOLS = {
+  recognition: [genIdSuit, genFindSuit, genReadNumber, genHonorId, genIsHonor],
+  sets: [genPickSet, genCompletePung, genCompleteChow],
+  winning: [genJudgeWin, genJudgeWin, genPickSet],
+  discards: [genDiscard, genSpeedCall],
+};
+function buildSession(catId, count = 8) {
+  const pool = catId === "mixed" ? [].concat(...Object.values(GEN_POOLS)) : GEN_POOLS[catId];
+  const steps = [];
+  for (let i = 0; i < count; i++) steps.push(pickOne(pool)());
+  steps.splice(2 + ri(3), 0, genFact()); // sprinkle a fact mid-session
+  return steps;
+}
+
+/* ---------------- ENDLESS PRACTICE: hub + runner ---------------- */
+
+const PRACTICE_CATS = [
+  { id: "recognition", emoji: "🀄", name: "Tile Recognition", desc: "Suits, numbers, winds & dragons" },
+  { id: "sets", emoji: "🧩", name: "Sets & Melds", desc: "Pungs, chows, pairs & completions" },
+  { id: "winning", emoji: "🏆", name: "Winning Hands", desc: "Spot real wins from fresh hands" },
+  { id: "discards", emoji: "🎯", name: "Discards & Speed", desc: "Best throws & lightning calls" },
+  { id: "mixed", emoji: "🎲", name: "Mixed Review", desc: "A bit of everything, shuffled" },
+];
+
+function PracticeRunner({ catId, title, teacher, addStars, onExit }) {
+  const T = useT();
+  const [round, setRound] = useState(0);
+  const [steps, setSteps] = useState(() => buildSession(catId));
+  const [done, setDone] = useState(false);
+  const A = teacher.Comp;
+
+  if (done) {
+    return (
+      <div style={{ position: "relative", minHeight: "min(92dvh,720px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 26px", textAlign: "center" }}>
+        <Confetti />
+        <A size={110} />
+        <h2 style={{ fontFamily: T.fontDisplay, fontSize: 26, fontWeight: 800, color: T.ink, margin: "14px 0 6px" }}>Session complete!</h2>
+        <p style={{ fontSize: 15.5, color: T.sub, lineHeight: 1.55, margin: "0 0 22px", maxWidth: 330 }}>
+          That set was freshly generated — the next one will be different. Keep going to stay sharp.
+        </p>
+        <Btn onClick={() => { setSteps(buildSession(catId)); setDone(false); setRound((r) => r + 1); }} tone="success" style={{ maxWidth: 320, marginBottom: 10 }}>New {title} session</Btn>
+        <Btn onClick={onExit} style={{ maxWidth: 320, background: T.card, color: T.ink, boxShadow: T.cardShadow, border: `1.5px solid ${T.cardBorder}` }}>Back to practice</Btn>
+      </div>
+    );
+  }
+  return (
+    <Lesson key={`prac-${catId}-${round}`} customSteps={steps} teacher={teacher}
+      onExit={onExit} addStars={addStars} onComplete={() => setDone(true)} />
+  );
+}
+
+function Practice({ teacher, addStars, onExit }) {
+  const T = useT();
+  const [cat, setCat] = useState(null);
+  if (cat) return <PracticeRunner catId={cat.id} title={cat.name} teacher={teacher} addStars={addStars} onExit={() => setCat(null)} />;
+  return (
+    <div style={{ padding: "0 18px 30px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0 8px" }}>
+        <button onClick={onExit} aria-label="Back" style={{ background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: 13, width: 46, height: 46, fontSize: 18, color: T.sub, cursor: "pointer", boxShadow: T.chipShadow }}>‹</button>
+        <h2 style={{ fontFamily: T.fontDisplay, fontSize: 22, fontWeight: 800, color: T.ink, margin: 0 }}>Endless Practice</h2>
+      </div>
+      <p style={{ fontSize: 14.5, color: T.sub, margin: "0 0 16px", lineHeight: 1.5 }}>
+        Every session is freshly generated — new tiles, new hands, new questions each time. Pick a focus and drill it as much as you like.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+        {PRACTICE_CATS.map((c) => (
+          <button key={c.id} onClick={() => setCat(c)} className="ss-btn"
+            style={{ display: "flex", alignItems: "center", gap: 14, textAlign: "left", width: "100%", background: T.card, border: `1.5px solid ${T.cardBorder}`, borderRadius: T.radius, padding: "15px 16px", minHeight: 78, boxShadow: T.btnEdge ? `0 4px 0 ${T.cardBorder}` : T.cardShadow, cursor: "pointer", fontFamily: T.fontBody, WebkitTapHighlightColor: "transparent" }}>
+            <div style={{ width: 50, height: 50, borderRadius: 14, flexShrink: 0, background: "rgba(0,0,0,.04)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>{c.emoji}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 800, fontSize: 16.5, color: T.ink, fontFamily: T.fontDisplay }}>{c.name}</div>
+              <div style={{ fontSize: 13.5, color: T.sub, marginTop: 2 }}>{c.desc}</div>
+            </div>
+            <span style={{ color: T.primary, fontSize: 21, fontWeight: 800 }}>›</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- APP ---------------- */
 
 export default function SparrowSchool() {
@@ -3292,7 +3542,11 @@ export default function SparrowSchool() {
                 onLogo={() => setScreen("landing")}
                 onSim={() => setScreen("sim")}
                 onMemory={() => setScreen("memory")}
-                onWin={() => setScreen("winanatomy")} />
+                onWin={() => setScreen("winanatomy")}
+                onPractice={() => setScreen("practice")} />
+            )}
+            {screen === "practice" && (
+              <Practice teacher={teacher} addStars={(n) => setStars((s) => s + n)} onExit={() => setScreen("home")} />
             )}
             {screen === "sim" && (
               <Sim teacher={teacher} onExit={() => setScreen("home")} />
