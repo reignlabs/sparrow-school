@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect, createContext, useContext 
 import { supabase } from "./supabaseClient";
 
 /* ============================================================
-   SPARROW SCHOOL — interactive mahjong tutorial (prototype v4)
+   MAHJONG AUNTIE — interactive HK mahjong tutorial
    All 6 lessons playable · Hong Kong style
    New: back button, mnemonic cards, MTR diagram, floating junk
    ============================================================ */
@@ -99,6 +99,63 @@ function clack() {
 
 /* ---------------- TEACHER AVATARS ---------------- */
 
+function AuntieAvatar({ size = 76 }) {
+  // Mahjong Auntie — cute cartoon Asian auntie: glasses, permed hair,
+  // jade twin-set, gold jewelry + a luxe (IP-safe) quilted handbag on her arm.
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} className="ss-bob" style={{ display: "block" }}>
+      {/* shoulders / jade twin-set */}
+      <path d="M22 92 q0 -22 28 -22 q28 0 28 22 Z" fill="#2FA877" />
+      <path d="M22 92 q0 -22 28 -22 q28 0 28 22 Z" fill="none" stroke="#1F8C60" strokeWidth="1.5" />
+      {/* pink scarf / collar accent */}
+      <path d="M40 71 q10 9 20 0 l-3 7 q-7 5 -14 0 Z" fill="#FF7FA8" />
+      {/* gold pearl necklace */}
+      <path d="M40 73 q10 8 20 0" fill="none" stroke="#E7B53C" strokeWidth="2.4" strokeLinecap="round" />
+      {[44, 48, 52, 56].map((x, i) => <circle key={i} cx={x} cy={75 + (i === 1 || i === 2 ? 1.5 : 0)} r="1.6" fill="#FFD978" stroke="#D5A22B" strokeWidth=".5" />)}
+
+      {/* hair back (permed bob) */}
+      <path d="M24 40 q-4 -30 26 -32 q30 2 26 32 q3 14 -6 18 q2 -12 -4 -16 q-16 8 -32 0 q-6 4 -4 16 q-9 -4 -2 -18 Z" fill="#2E2A33" />
+      {/* face */}
+      <circle cx="50" cy="40" r="22" fill="#F2C9A0" />
+      {/* permed fringe curls */}
+      <path d="M31 25 q5 -6 10 -3 q5 -5 9 -2 q5 -3 9 -1 q6 -2 9 3 q-13 -5 -20 -1 q-11 -3 -17 4 Z" fill="#2E2A33" />
+      <circle cx="30" cy="32" r="4" fill="#2E2A33" />
+      <circle cx="70" cy="32" r="4" fill="#2E2A33" />
+      {/* blush */}
+      <ellipse cx="34" cy="45" rx="5" ry="3.2" fill="#FF9DBA" opacity=".75" />
+      <ellipse cx="66" cy="45" rx="5" ry="3.2" fill="#FF9DBA" opacity=".75" />
+      {/* glasses (stylish, gold rim) */}
+      <g stroke="#D8A82E" strokeWidth="2.2" fill="rgba(255,255,255,.18)">
+        <rect x="33" y="34" width="14" height="11" rx="4" />
+        <rect x="53" y="34" width="14" height="11" rx="4" />
+      </g>
+      <path d="M47 39 q3 -1.5 6 0" stroke="#D8A82E" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+      <path d="M33 37 l-6 -2 M67 37 l6 -2" stroke="#D8A82E" strokeWidth="2.2" strokeLinecap="round" />
+      {/* eyes (behind glasses, big & friendly) */}
+      <circle cx="40" cy="40" r="2.8" fill="#33303A" />
+      <circle cx="60" cy="40" r="2.8" fill="#33303A" />
+      <circle cx="41" cy="39" r="1" fill="#fff" />
+      <circle cx="61" cy="39" r="1" fill="#fff" />
+      {/* warm smile */}
+      <path d="M43 50 q7 6 14 0" stroke="#C25C70" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+      {/* gold hoop earrings */}
+      <circle cx="27.5" cy="46" r="3" fill="none" stroke="#E7B53C" strokeWidth="2" />
+      <circle cx="72.5" cy="46" r="3" fill="none" stroke="#E7B53C" strokeWidth="2" />
+
+      {/* luxe quilted handbag on her arm (IP-safe: generic quilting + gold chain, no house marks) */}
+      <path d="M70 72 q8 -3 9 4" fill="none" stroke="#2FA877" strokeWidth="6" strokeLinecap="round" />
+      <g transform="translate(70 70)">
+        <path d="M-3 -7 q3 -5 12 -5 q9 0 12 5" fill="none" stroke="#E7B53C" strokeWidth="1.6" />
+        <rect x="-9" y="-6" width="22" height="17" rx="4" fill="#C0392B" stroke="#8E2A20" strokeWidth="1.4" />
+        {/* quilting */}
+        <path d="M-9 0 l22 0 M2 -6 l0 17 M-4 -6 l12 17 M8 -6 l-12 17" stroke="#A02E22" strokeWidth=".8" opacity=".7" />
+        {/* gold clasp */}
+        <rect x="-1.5" y="-1.5" width="5" height="4" rx="1" fill="#FFD978" stroke="#D5A22B" strokeWidth=".6" />
+      </g>
+    </svg>
+  );
+}
+
 function SparrowAvatar({ size = 76 }) {
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} className="ss-bob" style={{ display: "block" }}>
@@ -169,6 +226,7 @@ function DragonAvatar({ size = 76 }) {
 }
 
 const TEACHERS = [
+  { id: "auntie", name: "Auntie", title: "the Mahjong Auntie", tag: "Sharp eyes, sharper opinions. She'll get you table-ready.", Comp: AuntieAvatar },
   { id: "mai", name: "Mai", title: "the Sparrow", tag: "The classic. Mahjong literally means “sparrow.”", Comp: SparrowAvatar },
   { id: "bao", name: "Bao", title: "the Lucky Cat", tag: "Brings good fortune to every draw.", Comp: CatAvatar },
   { id: "lung", name: "Lung", title: "the Dragon", tag: "Honor-tile royalty, very humble about it.", Comp: DragonAvatar },
@@ -864,7 +922,7 @@ const DRAGON_MNEMO = [
 const LESSON_CONTENT = {
   1: [
     {
-      type: "teach", title: "Welcome to Sparrow School",
+      type: "teach", title: "Welcome to Mahjong Auntie",
       say: (t) => <>Mahjong's Cantonese name, <b>maa zeuk 麻雀</b>, literally means <b>"sparrow"</b> — shuffling tiles sounds like sparrows chattering. I'm <b>{t.name}</b>, and I'll get you table-ready, one tile at a time.</>,
       tiles: [D(1)], note: "Tap the tile to give it a poke.", requireAll: false,
     },
@@ -1471,8 +1529,8 @@ function Wordmark({ onClick, light = false }) {
   return (
     <button onClick={onClick}
       style={{ background: "none", border: "none", padding: 0, cursor: onClick ? "pointer" : "default", fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 25, color: light ? "#fff" : T.ink, letterSpacing: T.displaySpacing, WebkitTapHighlightColor: "transparent", display: "inline-flex", alignItems: "center", gap: 7 }}
-      aria-label="Sparrow School home">
-      <span>sparrow<span style={{ color: T.neonPink, textShadow: T.neon ? `0 0 9px ${T.neonPink}80, 0 0 22px ${T.neonPink}40` : "none" }}>school</span></span>
+      aria-label="Mahjong Auntie home">
+      <span>mahjong<span style={{ color: T.neonPink, textShadow: T.neon ? `0 0 9px ${T.neonPink}80, 0 0 22px ${T.neonPink}40` : "none" }}>auntie</span></span>
     </button>
   );
 }
@@ -1535,7 +1593,7 @@ function Home({ stars, completed, teacher, onStart, onSettings, onLogo, onSim, o
             <span key={l.id} style={{ width: 9, height: 9, borderRadius: 2.5, background: completed.includes(l.id) ? l.color : "#5A6068" }} />
           ))}
         </div>
-        <span style={{ color: "#fff", fontWeight: 800, fontSize: 15.5, fontFamily: T.fontDisplay, letterSpacing: ".01em" }}>Sparrow Line</span>
+        <span style={{ color: "#fff", fontWeight: 800, fontSize: 15.5, fontFamily: T.fontDisplay, letterSpacing: ".01em" }}>Auntie Line</span>
         <span style={{ color: "#B9C0C9", fontWeight: 700, fontSize: 14, fontFamily: "'Noto Sans TC',sans-serif" }}>雀線</span>
         <span style={{ marginLeft: "auto", color: "#B9C0C9", fontWeight: 800, fontSize: 12.5 }}>{completed.length}/{LESSONS.length}</span>
       </div>
@@ -2186,7 +2244,7 @@ function Landing({ onStart, teacher, returning, completedCount }) {
         <div style={{ position: "relative", padding: "20px 22px 0" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ fontFamily: T.fontDisplay, fontWeight: 800, fontSize: 22, color: "#fff" }}>
-              sparrow<span style={{ color: "#FF4D8D", textShadow: "0 0 10px #FF4D8D88" }}>school</span>
+              mahjong<span style={{ color: "#FF4D8D", textShadow: "0 0 10px #FF4D8D88" }}>auntie</span>
             </div>
             <button onClick={onStart} style={{ background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.25)", color: "#fff", fontWeight: 800, fontSize: 13.5, padding: "8px 15px", borderRadius: 999, cursor: "pointer", backdropFilter: "blur(8px)", WebkitTapHighlightColor: "transparent" }}>Open app</button>
           </div>
@@ -2297,7 +2355,7 @@ function Landing({ onStart, teacher, returning, completedCount }) {
             style={{ position: "relative", width: "min(320px,100%)", minHeight: 58, fontSize: 18, fontWeight: 800, fontFamily: T.fontBody, color: "#1A1230", background: "#FFC233", border: "none", borderRadius: 18, boxShadow: "0 4px 0 #C9920F", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
             Start learning
           </button>
-          <div style={{ position: "relative", marginTop: 22, color: "#7E7191", fontSize: 12 }}>A Rock Paper Chopsticks product · 麻雀 = sparrow</div>
+          <div style={{ position: "relative", marginTop: 22, color: "#7E7191", fontSize: 12 }}>A Rock Paper Chopsticks product · mahjongauntie.com</div>
         </div>
       </div>
     </div>
@@ -3351,7 +3409,7 @@ export default function SparrowSchool() {
   const [stars, setStars] = useState(boot0.current?.stars || 0);
   const [completed, setCompleted] = useState(boot0.current?.completed || []);
   const [themeId, setThemeId] = useState(boot0.current?.themeId || "duo");
-  const [teacherId, setTeacherId] = useState(boot0.current?.teacherId || "mai");
+  const [teacherId, setTeacherId] = useState(boot0.current?.teacherId || "auntie");
   const [user, setUser] = useState(null);
   const [booting, setBooting] = useState(!!supabase);
   const [showNudge, setShowNudge] = useState(false);
