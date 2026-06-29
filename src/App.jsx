@@ -115,30 +115,59 @@ const SOUND = (() => {
       o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.02);
     } catch (e) {}
   }
-  // a tile click = two quick knocks, slightly randomized (ivory-on-felt feel)
+  // a tile click = a wooden knock: tonal body + a short filtered noise burst
   function tileClack(vol = 0.09) {
+    if (muted) return;
     const f = 360 + Math.random() * 120;
     tone({ freq: f, slideTo: f * 0.5, dur: 0.045, gain: vol, type: "triangle" });
-    setTimeout(() => tone({ freq: f * 0.8, slideTo: f * 0.4, dur: 0.04, gain: vol * 0.7, type: "triangle" }), 18);
+    // noise burst → "clack" texture
+    const c = ac(); if (c) { try {
+      const t = c.currentTime, dur = 0.05;
+      const buf = c.createBuffer(1, Math.floor(c.sampleRate * dur), c.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.5);
+      const src = c.createBufferSource(); src.buffer = buf;
+      const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1600 + Math.random() * 800; bp.Q.value = 0.8;
+      const ng = c.createGain(); ng.gain.value = vol * 0.9;
+      src.connect(bp); bp.connect(ng); ng.connect(c.destination); src.start(t); src.stop(t + dur);
+    } catch (e) {} }
+    setTimeout(() => tone({ freq: f * 0.8, slideTo: f * 0.4, dur: 0.035, gain: vol * 0.6, type: "triangle" }), 16);
   }
-  function discard() { tileClack(0.11); }
-  function claim() { tone({ freq: 520, slideTo: 880, dur: 0.12, gain: 0.09, type: "square" }); setTimeout(() => tileClack(0.1), 60); }
+  function discard() { tileClack(0.12); }
+  function claim() { tone({ freq: 520, slideTo: 880, dur: 0.12, gain: 0.09, type: "square" }); setTimeout(() => tileClack(0.11), 60); }
   function win() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone({ freq: f, dur: 0.16, gain: 0.08, type: "triangle" }), i * 90)); }
   function lose() { [392, 330, 262].forEach((f, i) => setTimeout(() => tone({ freq: f, dur: 0.18, gain: 0.06, type: "sine" }), i * 130)); }
 
-  // parlor ambience: sparse randomized distant clacks + faint murmur
+  // OPTIONAL real ambience file: drop an mp3/ogg at /ambience.mp3 in the project's
+  // public folder and it will loop softly instead of the synth flurries.
+  let bgEl = null, fileChecked = false, fileOk = false;
+  function tryFile() {
+    if (fileChecked) return fileOk;
+    fileChecked = true;
+    try {
+      const el = new Audio("/ambience.mp3");
+      el.loop = true; el.volume = 0.18; el.preload = "auto";
+      el.addEventListener("canplaythrough", () => { fileOk = true; bgEl = el; if (!muted) el.play().catch(() => {}); }, { once: true });
+      el.addEventListener("error", () => { fileOk = false; });
+    } catch (e) {}
+    return fileOk;
+  }
+
+  // parlor ambience: real file if present, else sparse randomized synth clacks
   function startAmbience() {
     if (muted || ambient) return;
+    tryFile();
+    if (bgEl) { bgEl.play().catch(() => {}); return; }
     const c = ac(); if (!c) return;
     const tick = () => {
-      // 1–3 faint clacks in a little flurry
+      if (bgEl) return; // file took over
       const n = 1 + Math.floor(Math.random() * 3);
-      for (let i = 0; i < n; i++) setTimeout(() => tone({ freq: 280 + Math.random() * 180, slideTo: 150, dur: 0.05, gain: 0.025 + Math.random() * 0.02, type: "triangle" }), i * (40 + Math.random() * 60));
+      for (let i = 0; i < n; i++) setTimeout(() => tone({ freq: 280 + Math.random() * 180, slideTo: 150, dur: 0.05, gain: 0.022 + Math.random() * 0.02, type: "triangle" }), i * (40 + Math.random() * 60));
       ambient = setTimeout(tick, 700 + Math.random() * 1400);
     };
     ambient = setTimeout(tick, 400);
   }
-  function stopAmbience() { if (ambient) { clearTimeout(ambient); ambient = null; } }
+  function stopAmbience() { if (ambient) { clearTimeout(ambient); ambient = null; } if (bgEl) { try { bgEl.pause(); } catch (e) {} } }
   function setMuted(m) { muted = m; try { localStorage.setItem("ma.muted", m ? "1" : "0"); } catch (e) {} if (m) stopAmbience(); }
   return { tileClack, discard, claim, win, lose, startAmbience, stopAmbience, setMuted, isMuted: () => muted };
 })();
@@ -2820,6 +2849,42 @@ function simBotDiscard(h) {
   return worst;
 }
 
+// readable tile name for coaching ("5 Dots", "South wind", "Red dragon")
+function simLabel(k) {
+  const SU = { o: "Dots", b: "Bamboo", k: "Characters" };
+  if (simSuited(k)) return `${k.slice(1)} ${SU[k[0]]}`;
+  if (k[0] === "w") return `${k.slice(1)} wind`;
+  return ({ r: "Red", g: "Green", w: "White" })[k.slice(1)] + " dragon";
+}
+
+// analyze YOUR hand: which tiles to keep (collecting), which to throw, + a beginner tip
+function analyzeSimHand(handKeys) {
+  const c = simCounts(handKeys);
+  const keep = new Set();
+  for (const k of Object.keys(c)) if (c[k] >= 2) keep.add(k);          // pairs / triplets
+  for (const k of handKeys) {                                          // near-runs
+    if (!simSuited(k)) continue;
+    const s = k[0], n = +k.slice(1);
+    for (const d of [-2, -1, 1, 2]) { const nn = n + d; if (nn >= 1 && nn <= 9 && c[s + nn] > 0) { keep.add(k); break; } }
+  }
+  let worst = null, ws = Infinity;
+  for (const k of [...new Set(handKeys)]) { const u = simUseful(k, c); if (u < ws) { ws = u; worst = k; } }
+
+  // build the most useful single beginner tip, in priority order
+  const honorPair = Object.keys(c).find((k) => (k[0] === "w" || k[0] === "z") && c[k] >= 2);
+  const anyPair = Object.keys(c).find((k) => c[k] === 2);
+  let run = null;
+  for (const k of handKeys) { if (simSuited(k)) { const s = k[0], n = +k.slice(1); if (c[s + (n + 1)] > 0) { run = [k, s + (n + 1)]; break; } } }
+  let msg;
+  if (honorPair) msg = `Hold your ${simLabel(honorPair)} pair — honors & your seat wind score points. Throw the lone ${worst ? simLabel(worst) : "tile"}.`;
+  else if (anyPair && run) msg = `You're building: keep your pair of ${simLabel(anyPair)} and the ${simLabel(run[0])}–${simLabel(run[1])} run. Throw the lone ${worst ? simLabel(worst) : "tile"}.`;
+  else if (anyPair) msg = `Keep your pair of ${simLabel(anyPair)} — one more makes a Pung. Safe to throw the lone ${worst ? simLabel(worst) : "tile"}.`;
+  else if (run) msg = `Keep ${simLabel(run[0])} & ${simLabel(run[1])} — they want one more for a run. Throw the lone ${worst ? simLabel(worst) : "tile"}.`;
+  else msg = `No pairs yet — throw your most isolated tile (${worst ? simLabel(worst) : "the lone one"}) and aim to collect pairs or runs.`;
+
+  return { keep, worst, msg };
+}
+
 /* ================= SIMULATION: UI ================= */
 
 const SEAT_INFO = [
@@ -2828,6 +2893,84 @@ const SEAT_INFO = [
   { name: "Uncle", wind: "西", tag: "" },           // top
   { name: "Grandma", wind: "北", tag: "" },         // left
 ];
+
+// Compact cartoon busts that sit around the table (read well at ~50px).
+function SeatBust({ who, size = 52, active }) {
+  const ring = active ? "#FFD54A" : "rgba(255,255,255,.35)";
+  const common = { width: size, height: size, style: { display: "block" } };
+  const Frame = ({ children }) => (
+    <svg viewBox="0 0 64 64" {...common}>
+      <circle cx="32" cy="32" r="31" fill="#1C3A2B" stroke={ring} strokeWidth="2.5" className={active ? "ss-pulsering" : ""} />
+      <clipPath id={`c${who}`}><circle cx="32" cy="32" r="29" /></clipPath>
+      <g clipPath={`url(#c${who})`}>{children}</g>
+    </svg>
+  );
+  if (who === "auntie") return (
+    <Frame>
+      <rect x="0" y="0" width="64" height="64" fill="#F7E9D8" />
+      <path d="M10 64 q0 -16 22 -16 q22 0 22 16 Z" fill="#2FA877" />
+      <path d="M24 50 q8 6 16 0 l-3 7 q-5 3 -10 0 Z" fill="#FF7FA8" />
+      <path d="M14 30 q-2 -22 18 -23 q20 1 18 23 q1 9 -4 12 q1 -8 -2 -11 q-12 5 -24 0 q-3 3 -2 11 q-5 -3 -4 -12 Z" fill="#2E2A33" />
+      <circle cx="32" cy="30" r="16" fill="#F4CDA4" />
+      <path d="M18 20 q5 -6 14 -4 q9 -2 14 4 q-7 -2 -14 0 q-7 -2 -14 0 Z" fill="#2E2A33" />
+      <ellipse cx="24" cy="34" rx="3.4" ry="2.2" fill="#FF9DBA" opacity=".7" />
+      <ellipse cx="40" cy="34" rx="3.4" ry="2.2" fill="#FF9DBA" opacity=".7" />
+      <g stroke="#D8A82E" strokeWidth="1.8" fill="rgba(255,255,255,.15)"><rect x="20" y="26" width="9" height="7" rx="3" /><rect x="35" y="26" width="9" height="7" rx="3" /></g>
+      <circle cx="24.5" cy="29.5" r="1.7" fill="#33303A" /><circle cx="39.5" cy="29.5" r="1.7" fill="#33303A" />
+      <path d="M27 40 q5 4 10 0" stroke="#C25C70" strokeWidth="2" fill="none" strokeLinecap="round" />
+    </Frame>
+  );
+  if (who === "uncle") return (
+    <Frame>
+      <rect x="0" y="0" width="64" height="64" fill="#E8EEF2" />
+      <path d="M10 64 q0 -16 22 -16 q22 0 22 16 Z" fill="#3B6EA5" />
+      <path d="M26 49 h12 v9 h-12 Z" fill="#F4CDA4" />
+      <path d="M32 50 l3 6 -3 2 -3 -2 Z" fill="#C0392B" />
+      <circle cx="32" cy="30" r="16" fill="#F0C49A" />
+      {/* balding with side hair */}
+      <path d="M16 28 q0 -16 16 -16 q16 0 16 16 q-4 -9 -16 -9 q-12 0 -16 9 Z" fill="#6B6B6B" />
+      <path d="M15 28 q-2 8 3 12 q-2 -8 0 -12 Z M49 28 q2 8 -3 12 q2 -8 0 -12 Z" fill="#6B6B6B" />
+      {/* glasses */}
+      <g stroke="#4A4A4A" strokeWidth="1.8" fill="rgba(255,255,255,.12)"><rect x="19" y="26" width="10" height="8" rx="2" /><rect x="35" y="26" width="10" height="8" rx="2" /></g>
+      <line x1="29" y1="30" x2="35" y2="30" stroke="#4A4A4A" strokeWidth="1.8" />
+      <circle cx="24" cy="30" r="1.7" fill="#33303A" /><circle cx="40" cy="30" r="1.7" fill="#33303A" />
+      {/* mustache + slight grin */}
+      <path d="M25 41 q7 3 14 0" stroke="#6B6B6B" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+      <path d="M27 39 q5 2 10 0" stroke="#9A6B4F" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+    </Frame>
+  );
+  if (who === "grandma") return (
+    <Frame>
+      <rect x="0" y="0" width="64" height="64" fill="#F3ECEF" />
+      <path d="M10 64 q0 -16 22 -16 q22 0 22 16 Z" fill="#8E5BA8" />
+      <path d="M24 50 q8 5 16 0 l-2 7 q-6 3 -12 0 Z" fill="#EAD9F0" />
+      {/* silver bun */}
+      <circle cx="32" cy="11" r="6" fill="#D9D9DE" />
+      <path d="M14 30 q-2 -20 18 -21 q20 1 18 21 q1 8 -4 11 q1 -7 -2 -10 q-12 4 -24 0 q-3 3 -2 10 q-5 -3 -4 -11 Z" fill="#D9D9DE" />
+      <circle cx="32" cy="31" r="16" fill="#F2C9A8" />
+      <ellipse cx="24" cy="35" rx="3.2" ry="2" fill="#F2A6B8" opacity=".7" />
+      <ellipse cx="40" cy="35" rx="3.2" ry="2" fill="#F2A6B8" opacity=".7" />
+      {/* round glasses */}
+      <g stroke="#B08A4A" strokeWidth="1.6" fill="rgba(255,255,255,.12)"><circle cx="24" cy="30" r="5" /><circle cx="40" cy="30" r="5" /></g>
+      <line x1="29" y1="30" x2="35" y2="30" stroke="#B08A4A" strokeWidth="1.6" />
+      <circle cx="24" cy="30" r="1.6" fill="#33303A" /><circle cx="40" cy="30" r="1.6" fill="#33303A" />
+      <path d="M27 40 q5 4 10 0" stroke="#C27C8A" strokeWidth="2" fill="none" strokeLinecap="round" />
+    </Frame>
+  );
+  // you
+  return (
+    <Frame>
+      <rect x="0" y="0" width="64" height="64" fill="#FBF1E0" />
+      <path d="M10 64 q0 -16 22 -16 q22 0 22 16 Z" fill="#E7B53C" />
+      <path d="M16 26 q0 -15 16 -15 q16 0 16 15 q-3 -8 -16 -8 q-13 0 -16 8 Z" fill="#2E2A33" />
+      <circle cx="32" cy="31" r="16" fill="#F4CDA4" />
+      <circle cx="25" cy="30" r="1.8" fill="#33303A" /><circle cx="39" cy="30" r="1.8" fill="#33303A" />
+      <path d="M27 39 q5 4 10 0" stroke="#C25C70" strokeWidth="2" fill="none" strokeLinecap="round" />
+    </Frame>
+  );
+}
+const SEAT_WHO = ["you", "auntie", "uncle", "grandma"];
+
 
 // per-seat flavor lines (index matches SEAT_INFO). [1]=Auntie [2]=Uncle [3]=Grandma
 const BOT_LINES = {
@@ -2851,6 +2994,30 @@ const BOT_LINES = {
   },
 };
 const botLine = (seat, kind) => { const s = BOT_LINES[seat]?.[kind]; return s ? s[Math.floor(Math.random() * s.length)] : null; };
+
+// ---- table banter: bots converse WITH EACH OTHER ----
+// Each exchange = {a: opener, b: reply}. Openers/replies are templated so the
+// combinations are effectively endless. {n} = the other person's name.
+const CONVO = [
+  { a: "Have you eaten yet, {n}?", b: ["Aiya, twice already. You worry too much.", "Not yet — save me a seat after.", "You always ask me this!"] },
+  { a: "When is your son getting married?", b: ["Don't start with me again.", "Soon soon, he says. Hmph.", "Ask his mother, not me."] },
+  { a: "This tea is cold already.", b: ["Then drink faster lah.", "I told you, more hot water.", "Cold tea, cold luck."] },
+  { a: "You're playing too slow today.", b: ["Good things take time, dear.", "Slow and steady wins, you'll see.", "At my age, everything is slow."] },
+  { a: "Wah, your hand looks dangerous.", b: ["Bluffing only, don't worry.", "Maybe yes, maybe no.", "You'll find out soon enough."] },
+  { a: "My grandson plays this on his phone now.", b: ["Phone! No soul in that.", "Times change, what to do.", "Tell him to call his grandma."] },
+  { a: "Did you see the price of vegetables?", b: ["Robbery! Pure robbery.", "I grow my own now.", "Don't get me started, {n}."] },
+  { a: "Sit up straight, you'll hurt your back.", b: ["Yes, yes, mother.", "My back is fine, thank you.", "You sound just like my wife."] },
+  { a: "Lucky seat today, I can feel it.", b: ["You said that last week too.", "Feeling is not winning, dear.", "We'll see who's lucky."] },
+  { a: "You cut your hair? Looks nice.", b: ["Finally someone notices!", "My daughter did it.", "Cheaper than the salon, lah."] },
+  { a: "Aiya, my knees when it rains…", b: ["Drink more soup.", "Tell me about it.", "Old age is not for the weak, {n}."] },
+  { a: "Don't discard the dragons so carelessly.", b: ["I know what I'm doing!", "Teaching me now, are you?", "Watch your own tiles."] },
+];
+function buildExchange() {
+  const c = CONVO[Math.floor(Math.random() * CONVO.length)];
+  const reply = c.b[Math.floor(Math.random() * c.b.length)];
+  return { open: c.a, reply };
+}
+
 
 // rotating, non-intrusive in-game tips (glossary + strategy)
 const SIM_TIPS = [
@@ -2880,24 +3047,26 @@ function TileBackRow({ n, horizontal }) {
   );
 }
 
-function OpponentPanel({ seat, count, lastDiscard, active, side, say, thinking }) {
+function Seat({ seatIdx, seat, count, active, say, thinking, side }) {
   const T = useT();
+  const who = SEAT_WHO[seatIdx];
+  // bubble position depends on which edge the seat sits on
+  const bubblePos = side === "top" ? { top: "100%", marginTop: 6 }
+    : side === "left" ? { left: "100%", marginLeft: 6, top: 6 }
+    : side === "right" ? { right: "100%", marginRight: 6, top: 6 }
+    : { bottom: "100%", marginBottom: 6 };
   return (
-    <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, opacity: active ? 1 : 0.92 }}>
+    <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
       {say && (
-        <div className="ss-bubblein" style={{ position: "absolute", top: -34, zIndex: 5, background: "#fff", color: "#2A2533", fontWeight: 800, fontSize: 11.5, padding: "6px 10px", borderRadius: 12, boxShadow: "0 5px 14px rgba(0,0,0,.22)", border: "1.5px solid #FFE08A", whiteSpace: "nowrap", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div className="ss-bubblein" style={{ position: "absolute", zIndex: 9, background: "#fff", color: "#2A2533", fontWeight: 700, fontSize: 11, padding: "6px 9px", borderRadius: 11, boxShadow: "0 5px 14px rgba(0,0,0,.28)", border: "1.5px solid #FFE08A", width: 132, textAlign: "center", lineHeight: 1.3, ...bubblePos }}>
           {say}
-          <span style={{ position: "absolute", left: "50%", marginLeft: -6, bottom: -7, width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "7px solid #fff" }} />
         </div>
       )}
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <div className={active ? "ss-pulsering" : ""} style={{ "--pc": T.primary + "66", width: 30, height: 30, borderRadius: "50%", background: active ? T.primary : T.card, border: `2px solid ${active ? T.primary : T.cardBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: active ? "#fff" : T.sub, fontFamily: "'Noto Sans TC',sans-serif" }}>{seat.wind}</div>
-        <div style={{ fontSize: 12.5, fontWeight: 800, color: T.ink }}>{seat.name}</div>
-        {thinking && <span style={{ display: "inline-flex", gap: 2, marginLeft: 1 }}>{[0, 1, 2].map((i) => <span key={i} className="ss-think" style={{ width: 4, height: 4, borderRadius: "50%", background: T.primary, animation: "ssthink 1s ease-in-out infinite", animationDelay: `${i * 0.15}s` }} />)}</span>}
-      </div>
-      <TileBackRow n={count} horizontal={side === "left" || side === "right"} />
-      <div style={{ minHeight: 30 }}>
-        {lastDiscard && <div className="ss-land2" style={{ transform: "scale(.8)" }}><MiniTile t={simFromKey(lastDiscard)} size={32} /></div>}
+      <SeatBust who={who} size={50} active={active} />
+      <div style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(0,0,0,.35)", padding: "1px 7px", borderRadius: 999 }}>
+        <span style={{ fontFamily: "'Noto Sans TC',sans-serif", fontSize: 11, fontWeight: 800, color: active ? "#FFD54A" : "#CDEBD9" }}>{seat.wind}</span>
+        <span style={{ fontSize: 10.5, fontWeight: 800, color: "#EAFBF1" }}>{seat.name}</span>
+        {thinking && <span style={{ display: "inline-flex", gap: 2 }}>{[0, 1, 2].map((i) => <span key={i} style={{ width: 3.5, height: 3.5, borderRadius: "50%", background: "#FFD54A", animation: "ssthink 1s ease-in-out infinite", animationDelay: `${i * 0.15}s` }} />)}</span>}
       </div>
     </div>
   );
@@ -2910,21 +3079,22 @@ function Sim({ teacher, onExit }) {
   const [hintsOn, setHintsOn] = useState(() => { try { return localStorage.getItem("ma.simTips") !== "0"; } catch (e) { return true; } }); // rotating glossary chip
   const [muted, setMuted] = useState(() => SOUND.isMuted());
   const [coach, setCoach] = useState(() => !lsLoad()?.simSeen);
-  const [bot, setBot] = useState(null);                      // {seat, text} transient bot bubble
+  const [bubbles, setBubbles] = useState({});               // { seatIdx: text } — supports two bots conversing
   const [flash, setFlash] = useState(null);                  // {text, color} big call banner
   const [tipI, setTipI] = useState(() => Math.floor(Math.random() * SIM_TIPS.length));
   const [tipShow, setTipShow] = useState(true);
   const timer = useRef(null);
-  const botTimer = useRef(null);
+  const bubbleTimers = useRef({});
+  const convoTimer = useRef(null);
   const flashTimer = useRef(null);
 
-  const sayBot = (seat, kind) => {
-    const line = botLine(seat, kind);
-    if (!line) return;
-    setBot({ seat, text: line });
-    clearTimeout(botTimer.current);
-    botTimer.current = setTimeout(() => setBot(null), 2400);
+  const say = (seat, text, ms = 2600) => {
+    if (!text) return;
+    setBubbles((b) => ({ ...b, [seat]: text }));
+    clearTimeout(bubbleTimers.current[seat]);
+    bubbleTimers.current[seat] = setTimeout(() => setBubbles((b) => { const n = { ...b }; delete n[seat]; return n; }), ms);
   };
+  const sayBot = (seat, kind) => say(seat, botLine(seat, kind));
   const doFlash = (text, color) => {
     setFlash({ text, color });
     clearTimeout(flashTimer.current);
@@ -2937,7 +3107,7 @@ function Sim({ teacher, onExit }) {
     const hands = [[], [], [], []];
     for (let i = 0; i < 13; i++) for (let p = 0; p < 4; p++) hands[p].push(wall.pop());
     hands[0].push(wall.pop());
-    setBot(null); setFlash(null);
+    setBubbles({}); setFlash(null);
     setG({
       wall, hands, melds: [[], [], [], []], pond: [],
       last: [null, null, null, null],
@@ -2948,7 +3118,24 @@ function Sim({ teacher, onExit }) {
   };
   useEffect(() => {
     start();
-    return () => { clearTimeout(timer.current); clearTimeout(botTimer.current); clearTimeout(flashTimer.current); SOUND.stopAmbience(); };
+    return () => { clearTimeout(timer.current); Object.values(bubbleTimers.current).forEach(clearTimeout); clearTimeout(convoTimer.current); clearTimeout(flashTimer.current); SOUND.stopAmbience(); };
+  }, []);
+
+  // bot-to-bot banter: two random bots have a little exchange now and then
+  useEffect(() => {
+    const schedule = () => {
+      convoTimer.current = setTimeout(() => {
+        // pick two distinct bots (seats 1..3)
+        const bots = [1, 2, 3].sort(() => Math.random() - 0.5);
+        const [a, b] = bots;
+        const ex = buildExchange();
+        say(a, ex.open.replace("{n}", SEAT_INFO[b].name), 3000);
+        setTimeout(() => say(b, ex.reply.replace("{n}", SEAT_INFO[a].name), 3000), 1500);
+        schedule();
+      }, 6000 + Math.random() * 7000);
+    };
+    schedule();
+    return () => clearTimeout(convoTimer.current);
   }, []);
 
   // start parlor ambience once the coach is dismissed (needs a user gesture first)
@@ -3028,15 +3215,12 @@ function Sim({ teacher, onExit }) {
     return () => clearTimeout(timer.current);
   }, [g?.phase, g?.cur]);
 
-  // tips: mark the most-isolated (suggested discard) tile.
-  // NOTE: must run on every render (before any early return) to satisfy Rules of Hooks.
-  const suggestKey = useMemo(() => {
-    if (!g || !tips || g.phase !== "myturn") return null;
-    const c = simCounts(g.hands[0]);
-    let worst = null, ws = Infinity;
-    for (const k of [...new Set(g.hands[0])]) { const u = simUseful(k, c); if (u < ws) { ws = u; worst = k; } }
-    return worst;
-  }, [tips, g]);
+  // analyze hand for beginner coaching — runs every render (before early return).
+  const handHint = useMemo(() => {
+    if (!g || g.phase !== "myturn") return { keep: new Set(), worst: null, msg: null };
+    return analyzeSimHand(g.hands[0]);
+  }, [g]);
+  const suggestKey = tips ? handHint.worst : null;
 
   if (!g) return null;
 
@@ -3099,31 +3283,54 @@ function Sim({ teacher, onExit }) {
         <button onClick={() => setTips((v) => !v)} style={{ background: tips ? T.primary : T.card, color: tips ? "#fff" : T.sub, border: `1.5px solid ${tips ? T.primary : T.cardBorder}`, borderRadius: 999, padding: "7px 12px", fontWeight: 800, fontSize: 12, cursor: "pointer", boxShadow: T.chipShadow }}>Hints {tips ? "on" : "off"}</button>
       </div>
 
-      {/* table */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", background: "radial-gradient(120% 90% at 50% 45%, #1F7A55 0%, #16603F 70%, #124E34 100%)", borderRadius: 22, padding: "12px 10px", position: "relative", boxShadow: "inset 0 2px 14px rgba(0,0,0,.25)", overflow: "hidden" }}>
+      {/* table — arcade cabinet screen */}
+      <div style={{ flex: 1, position: "relative", borderRadius: 22, padding: 4, background: "linear-gradient(135deg, #FF4D8D, #C9920F 40%, #34D0FF)", boxShadow: `0 0 22px ${T.neonPink}55, 0 6px 0 rgba(0,0,0,.25)` }}>
+      <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", maxWidth: 440, margin: "0 auto", background: "radial-gradient(120% 120% at 50% 45%, #1F7A55 0%, #16603F 60%, #0E4329 100%)", borderRadius: 18, boxShadow: "inset 0 2px 18px rgba(0,0,0,.45)", overflow: "hidden" }}>
+        {/* CRT scanlines */}
+        <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(0deg, rgba(0,0,0,.10) 0px, rgba(0,0,0,.10) 1px, transparent 2px, transparent 4px)", pointerEvents: "none", opacity: .5 }} />
+        {/* inset felt square outline (the playing surface) */}
+        <div style={{ position: "absolute", inset: "16%", border: "2px dashed rgba(255,255,255,.14)", borderRadius: 10 }} />
+
+        {/* seats on the four edges */}
+        <div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)" }}>
+          <Seat seatIdx={2} seat={SEAT_INFO[2]} count={g.hands[2].length} active={g.cur === 2} say={bubbles[2]} thinking={g.cur === 2 && g.phase === "botthinking"} side="top" />
+        </div>
+        <div style={{ position: "absolute", left: 6, top: "50%", transform: "translateY(-50%)" }}>
+          <Seat seatIdx={3} seat={SEAT_INFO[3]} count={g.hands[3].length} active={g.cur === 3} say={bubbles[3]} thinking={g.cur === 3 && g.phase === "botthinking"} side="left" />
+        </div>
+        <div style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)" }}>
+          <Seat seatIdx={1} seat={SEAT_INFO[1]} count={g.hands[1].length} active={g.cur === 1} say={bubbles[1]} thinking={g.cur === 1 && g.phase === "botthinking"} side="right" />
+        </div>
+        <div style={{ position: "absolute", bottom: 6, left: "50%", transform: "translateX(-50%)" }}>
+          <Seat seatIdx={0} seat={SEAT_INFO[0]} count={g.hands[0].length} active={g.cur === 0} say={bubbles[0]} thinking={false} side="bottom" />
+        </div>
+
+        {/* center: discard pond */}
+        <div style={{ position: "absolute", inset: "26%", display: "flex", flexWrap: "wrap", alignContent: "center", justifyContent: "center", gap: 2 }}>
+          {g.pond.slice(-16).map((d, i, arr) => (
+            <div key={g.pond.length - arr.length + i} className={i === arr.length - 1 ? "ss-land2" : ""} style={{ transform: "scale(.7)", margin: -3 }}><MiniTile t={simFromKey(d.t)} size={30} /></div>
+          ))}
+        </div>
+
         {/* big call flash */}
         {flash && (
-          <div className="ss-flash" style={{ position: "absolute", inset: 0, zIndex: 8, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-            <div style={{ fontFamily: "'Noto Sans TC',sans-serif", fontWeight: 800, fontSize: 72, color: flash.color, textShadow: "0 4px 18px rgba(0,0,0,.5), 0 0 2px #fff", WebkitTextStroke: "2px #fff" }}>{flash.text}</div>
+          <div className="ss-flash" style={{ position: "absolute", inset: 0, zIndex: 12, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+            <div style={{ fontFamily: "'Noto Sans TC',sans-serif", fontWeight: 800, fontSize: 80, color: flash.color, textShadow: `0 0 18px ${flash.color}, 0 4px 18px rgba(0,0,0,.6)`, WebkitTextStroke: "2px #fff" }}>{flash.text}</div>
           </div>
         )}
-        {/* top opponent */}
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <OpponentPanel seat={SEAT_INFO[2]} count={g.hands[2].length} lastDiscard={g.last[2]} active={g.cur === 2} side="top" say={bot?.seat === 2 ? bot.text : null} thinking={g.cur === 2 && g.phase === "botthinking"} />
-        </div>
-        {/* middle: left opp · pond · right opp */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, padding: "4px 0" }}>
-          <OpponentPanel seat={SEAT_INFO[3]} count={g.hands[3].length} lastDiscard={g.last[3]} active={g.cur === 3} side="left" say={bot?.seat === 3 ? bot.text : null} thinking={g.cur === 3 && g.phase === "botthinking"} />
-          <div style={{ flex: 1, alignSelf: "stretch", display: "flex", flexWrap: "wrap", alignContent: "center", justifyContent: "center", gap: 3, minHeight: 86, maxWidth: 230, margin: "0 auto" }}>
-            {g.pond.slice(-15).map((d, i, arr) => (
-              <div key={g.pond.length - arr.length + i} className={i === arr.length - 1 ? "ss-land2" : ""} style={{ transform: "scale(.62)", margin: -4 }}><MiniTile t={simFromKey(d.t)} size={34} /></div>
-            ))}
-          </div>
-          <OpponentPanel seat={SEAT_INFO[1]} count={g.hands[1].length} lastDiscard={g.last[1]} active={g.cur === 1} side="right" say={bot?.seat === 1 ? bot.text : null} thinking={g.cur === 1 && g.phase === "botthinking"} />
-        </div>
-        {/* message */}
-        <div style={{ textAlign: "center", color: "#EAFBF1", fontWeight: 800, fontSize: 14.5, minHeight: 22, fontFamily: T.fontDisplay, textShadow: "0 1px 3px rgba(0,0,0,.4)" }}>{g.msg}</div>
       </div>
+      </div>
+
+      {/* message line */}
+      <div style={{ textAlign: "center", color: T.ink, fontWeight: 800, fontSize: 14, minHeight: 20, marginTop: 8, fontFamily: T.fontDisplay }}>{g.msg}</div>
+
+      {/* beginner coach: what to keep & collect (when it's your turn + hints on) */}
+      {tips && g.phase === "myturn" && handHint.msg && (
+        <div className="ss-tipfade" style={{ marginTop: 8, display: "flex", alignItems: "flex-start", gap: 9, background: "linear-gradient(180deg, #2A1840, #1F1330)", border: `1.5px solid ${T.neonPink}`, borderRadius: 13, padding: "10px 13px", boxShadow: `0 0 18px ${T.neonPink}44` }}>
+          <span style={{ fontSize: 16 }}>🧧</span>
+          <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#FCEFF5", lineHeight: 1.4 }}>{handHint.msg}</span>
+        </div>
+      )}
 
       {/* rotating glossary tip — non-intrusive, fades, dismissible */}
       {hintsOn && (
@@ -3139,37 +3346,46 @@ function Sim({ teacher, onExit }) {
         <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
           {myMelds.map((m, i) => (
             <div key={i} style={{ display: "flex", gap: 1, background: "rgba(0,0,0,.05)", borderRadius: 7, padding: 3 }}>
-              {m.tiles.map((t, j) => <MiniTile key={j} t={simFromKey(t)} size={26} />)}
+              {m.tiles.map((t, j) => <MiniTile key={j} t={simFromKey(t)} size={28} />)}
             </div>
           ))}
         </div>
       )}
 
-      {/* your hand */}
-      <div style={{ marginTop: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-          <span style={{ width: 22, height: 22, borderRadius: "50%", background: g.cur === 0 ? T.primary : T.card, border: `2px solid ${g.cur === 0 ? T.primary : T.cardBorder}`, color: g.cur === 0 ? "#fff" : T.sub, fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Noto Sans TC',sans-serif" }}>東</span>
-          <span style={{ fontSize: 12.5, fontWeight: 800, color: T.sub }}>Your hand{g.phase === "myturn" ? " · tap to discard" : ""}</span>
+      {/* your hand — single real-table row, big tiles, scrolls sideways if needed */}
+      <div style={{ marginTop: 8, background: "linear-gradient(180deg, #14110C, #221A10)", borderRadius: 18, border: "2px solid #C9920F", padding: "8px 6px 12px", boxShadow: "0 4px 0 #6E4F08, inset 0 1px 0 rgba(255,210,120,.25)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, margin: "2px 8px 8px" }}>
+          <span style={{ width: 24, height: 24, borderRadius: "50%", background: g.cur === 0 ? T.star : "rgba(255,255,255,.12)", border: `2px solid ${g.cur === 0 ? T.star : "rgba(255,255,255,.25)"}`, color: g.cur === 0 ? "#1A1230" : "#FFE08A", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Noto Sans TC',sans-serif" }}>東</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: "#FFE08A", letterSpacing: ".04em", textTransform: "uppercase" }}>Your Hand</span>
+          {g.phase === "myturn" && <span style={{ fontSize: 11.5, fontWeight: 700, color: "#9C7B3A" }}>· tap a tile to throw</span>}
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center" }}>
+        <div style={{ display: "flex", flexWrap: "nowrap", gap: 5, justifyContent: "flex-start", overflowX: "auto", padding: "4px 8px 6px", WebkitOverflowScrolling: "touch", scrollbarWidth: "thin" }}>
           {myHand.map((tk, i) => {
             const isDrawn = tk === g.drawn && g.phase === "myturn";
             const suggested = tk === suggestKey;
+            const keep = tips && g.phase === "myturn" && handHint.keep.has(tk) && !suggested;
             return (
               <button key={i} onClick={() => discard(tk, i)} disabled={g.phase !== "myturn"}
-                className="ss-deal"
-                style={{
-                  border: "none", background: "none", padding: 0, cursor: g.phase === "myturn" ? "pointer" : "default",
-                  borderRadius: 9, animationDelay: `${i * 18}ms`,
-                  boxShadow: suggested ? `0 0 0 3px ${T.primary}` : isDrawn ? `0 0 0 3px ${T.star}` : "none",
-                  transform: g.phase === "myturn" ? "translateY(0)" : "none",
+                className="ss-deal" style={{
+                  flex: "0 0 auto", border: "none", background: "none", padding: 0, cursor: g.phase === "myturn" ? "pointer" : "default",
+                  borderRadius: 11, animationDelay: `${i * 16}ms`, position: "relative",
+                  marginLeft: isDrawn ? 8 : 0, transform: isDrawn ? "translateY(-4px)" : "none",
+                  boxShadow: suggested ? `0 0 0 3px ${T.neonPink}, 0 0 12px ${T.neonPink}` : keep ? `0 0 0 3px #2FD08A, 0 0 9px #2FD08A88` : isDrawn ? `0 0 0 3px ${T.star}` : "none",
                   WebkitTapHighlightColor: "transparent",
                 }}>
-                <MiniTile t={simFromKey(tk)} size={Math.min(40, Math.floor(320 / Math.max(myHand.length, 13)) + 8)} />
+                <MiniTile t={simFromKey(tk)} size={62} />
+                {suggested && <span style={{ position: "absolute", top: -9, left: "50%", transform: "translateX(-50%)", fontSize: 14 }}>👎</span>}
               </button>
             );
           })}
         </div>
+        {tips && g.phase === "myturn" && (
+          <div style={{ display: "flex", justifyContent: "center", gap: 14, marginTop: 6, fontSize: 10.5, fontWeight: 700, color: "#9C7B3A" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: "#2FD08A" }} /> keep / collecting</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: T.neonPink }} /> safe to throw</span>
+            <span style={{ color: "#6E5A2E" }}>← swipe →</span>
+          </div>
+        )}
       </div>
 
       {/* action bar */}
@@ -3564,9 +3780,14 @@ const GEN_POOLS = {
   sets: [genPickSet, genCompletePung, genCompleteChow],
   winning: [genJudgeWin, genJudgeWin, genPickSet],
   discards: [genDiscard, genSpeedCall],
+  // freshly-generated drills that mirror each unit's curriculum
+  unit1: [genIdSuit, genFindSuit, genReadNumber, genHonorId, genIsHonor, genCompletePung, genCompleteChow, genPickSet, genJudgeWin],
+  unit2: [genJudgeWin, genJudgeWin, genDiscard, genSpeedCall, genPickSet, genCompletePung, genCompleteChow],
 };
 function buildSession(catId, count = 8) {
-  const pool = catId === "mixed" ? [].concat(...Object.values(GEN_POOLS)) : GEN_POOLS[catId];
+  const pool = catId === "mixed"
+    ? [genIdSuit, genFindSuit, genReadNumber, genHonorId, genIsHonor, genPickSet, genCompletePung, genCompleteChow, genJudgeWin, genDiscard, genSpeedCall]
+    : GEN_POOLS[catId];
   const steps = [];
   for (let i = 0; i < count; i++) steps.push(pickOne(pool)());
   steps.splice(2 + ri(3), 0, genFact()); // sprinkle a fact mid-session
@@ -3576,6 +3797,8 @@ function buildSession(catId, count = 8) {
 /* ---------------- ENDLESS PRACTICE: hub + runner ---------------- */
 
 const PRACTICE_CATS = [
+  { id: "unit1", emoji: "①", name: "Unit 1 — fresh drills", desc: "Tiles, sets & the winning shape — new every time" },
+  { id: "unit2", emoji: "②", name: "Unit 2 — fresh drills", desc: "Scoring, discards & defense — new every time" },
   { id: "recognition", emoji: "🀄", name: "Tile Recognition", desc: "Suits, numbers, winds & dragons" },
   { id: "sets", emoji: "🧩", name: "Sets & Melds", desc: "Pungs, chows, pairs & completions" },
   { id: "winning", emoji: "🏆", name: "Winning Hands", desc: "Spot real wins from fresh hands" },
