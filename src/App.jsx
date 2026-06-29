@@ -99,8 +99,8 @@ function clack() {
 
 /* ---------------- SOUND ENGINE (synth, mutable, persisted) ---------------- */
 const SOUND = (() => {
-  let muted = false;
-  try { muted = localStorage.getItem("ma.muted") === "1"; } catch (e) {}
+  let muted = true; // default OFF until manually unmuted (awaiting hi-fi audio)
+  try { const v = localStorage.getItem("ma.muted"); if (v !== null) muted = v === "1"; } catch (e) {}
   let ambient = null;
   const ac = () => { try { _actx = _actx || new (window.AudioContext || window.webkitAudioContext)(); return _actx; } catch (e) { return null; } };
 
@@ -2286,8 +2286,8 @@ function Settings({ themeId, setThemeId, teacherId, setTeacherId, account, onAcc
 
       <h3 style={{ fontSize: 13.5, fontWeight: 800, color: T.sub, textTransform: "uppercase", letterSpacing: ".07em", margin: "18px 0 10px" }}>Game</h3>
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        <ToggleRow icon="🔊" title="Sound & parlor ambience" desc="Tile clacks and background table sounds"
-          storeKey="ma.muted" inverted defaultOn onChange={(on) => SOUND.setMuted(!on)} />
+        <ToggleRow icon="🔊" title="Sound & parlor ambience" desc="Off by default — hi-fi audio coming soon"
+          storeKey="ma.muted" inverted defaultOn={false} onChange={(on) => SOUND.setMuted(!on)} />
         <ToggleRow icon="💡" title="In-game tips" desc="Rotating reminders during the simulation"
           storeKey="ma.simTips" defaultOn />
       </div>
@@ -3352,38 +3352,40 @@ function Sim({ teacher, onExit }) {
         </div>
       )}
 
-      {/* your hand — single real-table row, big tiles, scrolls sideways if needed */}
+      {/* your hand — wraps to 2 rows so the WHOLE hand is visible; sized for thumbs */}
       <div style={{ marginTop: 8, background: "linear-gradient(180deg, #14110C, #221A10)", borderRadius: 18, border: "2px solid #C9920F", padding: "8px 6px 12px", boxShadow: "0 4px 0 #6E4F08, inset 0 1px 0 rgba(255,210,120,.25)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7, margin: "2px 8px 8px" }}>
           <span style={{ width: 24, height: 24, borderRadius: "50%", background: g.cur === 0 ? T.star : "rgba(255,255,255,.12)", border: `2px solid ${g.cur === 0 ? T.star : "rgba(255,255,255,.25)"}`, color: g.cur === 0 ? "#1A1230" : "#FFE08A", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Noto Sans TC',sans-serif" }}>東</span>
           <span style={{ fontSize: 12, fontWeight: 800, color: "#FFE08A", letterSpacing: ".04em", textTransform: "uppercase" }}>Your Hand</span>
           {g.phase === "myturn" && <span style={{ fontSize: 11.5, fontWeight: 700, color: "#9C7B3A" }}>· tap a tile to throw</span>}
         </div>
-        <div style={{ display: "flex", flexWrap: "nowrap", gap: 5, justifyContent: "flex-start", overflowX: "auto", padding: "4px 8px 6px", WebkitOverflowScrolling: "touch", scrollbarWidth: "thin" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, rowGap: 8, justifyContent: "center", padding: "2px 4px" }}>
           {myHand.map((tk, i) => {
             const isDrawn = tk === g.drawn && g.phase === "myturn";
             const suggested = tk === suggestKey;
             const keep = tips && g.phase === "myturn" && handHint.keep.has(tk) && !suggested;
+            // size so 7 tiles fit per row (→ two rows for a 13–14 tile hand), clamped for thumbs
+            const W = typeof window !== "undefined" ? Math.min(window.innerWidth, 460) : 400;
+            const sz = Math.max(38, Math.min(52, Math.floor((W - 52 - 6 * 6) / 7)));
             return (
               <button key={i} onClick={() => discard(tk, i)} disabled={g.phase !== "myturn"}
                 className="ss-deal" style={{
                   flex: "0 0 auto", border: "none", background: "none", padding: 0, cursor: g.phase === "myturn" ? "pointer" : "default",
                   borderRadius: 11, animationDelay: `${i * 16}ms`, position: "relative",
-                  marginLeft: isDrawn ? 8 : 0, transform: isDrawn ? "translateY(-4px)" : "none",
+                  transform: isDrawn ? "translateY(-4px)" : "none",
                   boxShadow: suggested ? `0 0 0 3px ${T.neonPink}, 0 0 12px ${T.neonPink}` : keep ? `0 0 0 3px #2FD08A, 0 0 9px #2FD08A88` : isDrawn ? `0 0 0 3px ${T.star}` : "none",
                   WebkitTapHighlightColor: "transparent",
                 }}>
-                <MiniTile t={simFromKey(tk)} size={62} />
+                <MiniTile t={simFromKey(tk)} size={sz} />
                 {suggested && <span style={{ position: "absolute", top: -9, left: "50%", transform: "translateX(-50%)", fontSize: 14 }}>👎</span>}
               </button>
             );
           })}
         </div>
         {tips && g.phase === "myturn" && (
-          <div style={{ display: "flex", justifyContent: "center", gap: 14, marginTop: 6, fontSize: 10.5, fontWeight: 700, color: "#9C7B3A" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 14, marginTop: 8, fontSize: 10.5, fontWeight: 700, color: "#9C7B3A" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: "#2FD08A" }} /> keep / collecting</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: T.neonPink }} /> safe to throw</span>
-            <span style={{ color: "#6E5A2E" }}>← swipe →</span>
           </div>
         )}
       </div>
